@@ -815,6 +815,8 @@ static void Class_initRpcGadget(JNIEnv* env, jclass) {
   fluid::g_debug_ofs.open("/data/local/tmp/rpc_installed_methods", std::ofstream::out);
   fluid::g_debug_ofs.close();
   chmod("/data/local/tmp/rpc_installed_methods", 0666);
+
+  mkdir("/data/local/tmp/rendering_analysis", 0777);
 }
 
 static void Class_setFLUIDManagerObj(JNIEnv* env, jclass, jobject managerObj) {
