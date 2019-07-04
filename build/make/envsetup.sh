@@ -1639,7 +1639,7 @@ function _wrap_build()
     echo " ####${color_reset}"
     echo
 	
-	(build_notify $ret $hours $mins $secs)
+	#(build_notify $ret $hours $mins $secs)
 
     return $ret
 }
@@ -1658,6 +1658,9 @@ function build_notify()
 function make()
 {
     _wrap_build $(get_make_command) "$@"
+	cd frameworks/fluidservice/libs/
+	mm
+	cd -
 }
 
 function provision()
