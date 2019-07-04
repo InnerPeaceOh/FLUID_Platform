@@ -32,6 +32,19 @@ import dalvik.annotation.optimization.FastNative;
  * text on a path.
  */
 public class Path {
+
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(Path)";
+    private static final boolean DUI_DEBUG = false;
+
+	/** @hide */
+	public void unflattenForFLUID() {
+		if (DUI_DEBUG) {
+			android.util.Log.d(DUI_TAG, "unflattenForFLUID()");
+		}
+        mNativePath = nInit();
+	}
+	/* mobiledui: end */
     /**
      * @hide
      */

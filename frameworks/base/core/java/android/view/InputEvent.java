@@ -25,6 +25,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Common base class for input events.
  */
 public abstract class InputEvent implements Parcelable {
+	/* mobiledui: start */
+	/** @hide */
+	public boolean mIsFromHost = false;
+
+	/** @hide */
+	public float mScale;
+	/* mobiledui: end */
+
     /** @hide */
     protected static final int PARCEL_TOKEN_MOTION_EVENT = 1;
     /** @hide */

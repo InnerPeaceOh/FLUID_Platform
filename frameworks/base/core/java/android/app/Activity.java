@@ -134,6 +134,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+/* mobiledui: start */
+import java.util.Queue;
+import java.util.LinkedList;
+import android.graphics.PixelFormat;
+import android.view.Gravity;
+import android.fluid.FLUIDManager;
+/* mobiledui: end */
+
 /**
  * An activity is a single, focused thing that the user can do.  Almost all
  * activities interact with the user, so the Activity class takes care of
@@ -695,6 +703,15 @@ public class Activity extends ContextThemeWrapper
         OnCreateContextMenuListener, ComponentCallbacks2,
         Window.OnWindowDismissedCallback, WindowControllerCallback,
         AutofillManager.AutofillClient {
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(Activity)";
+    private static final boolean DUI_DEBUG = false;
+
+	/** @hide */
+	public FLUIDManager mFLUIDManager = null;
+	private View mOverlayView = null;
+	/* mobiledui: end */
+
     private static final String TAG = "Activity";
     private static final boolean DEBUG_LIFECYCLE = false;
 
@@ -1674,6 +1691,20 @@ public class Activity extends ContextThemeWrapper
         if (DEBUG_LIFECYCLE) Slog.v(TAG, "onPause " + this);
         getApplication().dispatchActivityPaused(this);
         mCalled = true;
+		/* mobiledui: start */
+		if (mFLUIDManager != null && mOverlayView != null) {
+			mWindowManager.removeView(mOverlayView);
+			mOverlayView = null;
+			mFLUIDManager.mUiSelectionMode = false;
+
+			LinkedList<View> list = mFLUIDManager.mOverlayList;
+			for (View view : list) {
+				view.removeOverlayBound();
+				view.mFLUIDSelected = false;
+			}
+			list.clear();
+		}
+		/* mobiledui: end */
     }
 
     /**
@@ -3309,6 +3340,127 @@ public class Activity extends ContextThemeWrapper
         }
         return onTouchEvent(ev);
     }
+
+	/* mobiledui: start */
+	/** @hide */
+    public boolean triggerUiSelection(MotionEvent ev) {
+        if (mFLUIDManager != null && ev.getAction() == MotionEvent.ACTION_DOWN) {
+			mFLUIDManager.mTouchPointNums = ev.getPointerCount();
+        }
+		else if (mFLUIDManager != null && ev.getAction() == MotionEvent.ACTION_UP 
+				&& mFLUIDManager.mTouchPointNums == 3) {
+			mFLUIDManager.mUiSelectionMode = !mFLUIDManager.mUiSelectionMode;
+			if (mFLUIDManager.mUiSelectionMode) {
+				Log.d(DUI_TAG, "Enter UI selection mode");
+				WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+						mWindow.getDecorView().getWidth(),
+						mWindow.getDecorView().getHeight(),
+						WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+						WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+						|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+						|WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+						PixelFormat.TRANSLUCENT);
+				params.gravity = Gravity.TOP | Gravity.LEFT;
+				params.x = 0;
+				params.y = 0;
+
+				mOverlayView = new View(this);
+				mOverlayView.setBackgroundColor(0x4d000000);
+				mWindowManager.addView(mOverlayView, params);
+			}
+			else {
+				Log.d(DUI_TAG, "Exit UI selection mode");
+				ArrayList<View> targetViews = findTargetViews();
+
+				mWindowManager.removeView(mOverlayView);
+				mOverlayView = null;
+				LinkedList<View> list = mFLUIDManager.mOverlayList;
+				for (View view : list) {
+					view.removeOverlayBound();
+					view.mFLUIDSelected = false;
+					ViewGroup parent = (ViewGroup)view.getParent();
+					parent.removeOnlyOverlay();
+				}
+				list.clear();
+
+				int remoteId = 0;
+
+				if (targetViews != null) {
+					for (View view : targetViews)
+						view.mRemoteId = remoteId++;
+					for (View view : targetViews) {
+						View parent = (View)view.getParent();
+						view.mParentRemoteId = (parent != null)? parent.mRemoteId : -1;
+						view.mIsTarget = false;
+						Log.d(DUI_TAG, "targetViews, id = " + view.mRemoteId
+								+ ", parent id = " + view.mParentRemoteId
+								+ ", view = " + view);
+					}
+					mFLUIDManager.registerAppBinders(mMainThread.getApplicationThread(), mToken);
+					mFLUIDManager.serializeUi(this, targetViews);
+				}
+			}
+			mFLUIDManager.mTouchPointNums = 0;
+			return true;
+		}
+		else if (mFLUIDManager != null && mFLUIDManager.mTouchPointNums < ev.getPointerCount()) {
+			mFLUIDManager.mTouchPointNums = ev.getPointerCount();
+		}
+		return false;
+	}
+
+	private ArrayList<View> findTargetViews() {
+		ArrayList<View> targetViews = new ArrayList<View>();
+		Queue<ViewGroup> queue = new LinkedList<ViewGroup>();
+		ViewGroup contentView = (ViewGroup)mWindow.getDecorView().findViewById(android.R.id.content);
+		queue.add(contentView);
+		if (contentView.mSelectedCount == 0)
+			return null;
+
+		ViewGroup subRoot = null;
+		boolean foundSubRoot = false;
+		while (!queue.isEmpty()) {
+			ViewGroup parent = queue.poll();
+			int childCount = parent.getChildCount();
+			for (int i = 0; i < childCount; i++) {
+				View child = parent.getChildAt(i);
+				if (child.mSelectedCount == parent.mSelectedCount) {
+					queue.add((ViewGroup)child);
+					break;
+				}
+				else if (child.mSelectedCount > 0 || child.mFLUIDSelected) {
+					subRoot = parent;
+					foundSubRoot = true;
+					break;
+				}
+			}
+			if (foundSubRoot)
+				break;
+		}
+		queue.clear();
+
+		targetViews.add(subRoot);
+		queue.add(subRoot);
+		while (!queue.isEmpty()) {
+			ViewGroup parent = queue.poll();
+			int childCount = parent.getChildCount();
+			for (int i = 0; i < childCount; i++) {
+				View child = parent.getChildAt(i);
+				if (child.mFLUIDSelected) {
+					targetViews.add(child);
+					child.mIsTarget = true;
+				}
+				else if (child.mSelectedCount > 0) {
+					targetViews.add(child);
+					child.mIsTarget = true;
+					queue.add((ViewGroup)child);
+				}
+			}
+		}
+
+		return (targetViews.size() != 0)? targetViews : null;
+	}
+	/* mobiledui: end */
 
     /**
      * Called to process trackball events.  You can override this to
@@ -6979,6 +7131,12 @@ public class Activity extends ContextThemeWrapper
         mCurrentConfig = config;
 
         mWindow.setColorMode(info.colorMode);
+		/* mobiledui: start */
+		mFLUIDManager = FLUIDManager.getInstance();
+		LayoutInflater inflater = mWindow.getLayoutInflater();
+		inflater.setFLUIDManager(mMainThread.getFLUIDManager());
+		inflater.setAppBinders(aThread.getApplicationThread(), mToken);
+		/* mobiledui: end */
     }
 
     /** @hide */

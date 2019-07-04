@@ -137,6 +137,28 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+/* mobiledui: start */
+import java.nio.ByteBuffer;
+import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.DataOutputStream;
+import java.io.DataInputStream;
+import android.app.Activity;
+import android.os.Bundle;
+import android.text.SpannableStringBuilder;
+import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.ExtractedTextRequest;
+import android.view.inputmethod.CompletionInfo;
+import android.view.inputmethod.CorrectionInfo;
+import android.view.inputmethod.InputContentInfo;
+import android.widget.LinearLayout;
+import android.graphics.drawable.GradientDrawable;
+import android.fluid.FLUIDManager;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.io.Output;
+import android.fluid.kryo.io.Input;
+/* mobiledui: end */
+
 
 /**
  * <p>
@@ -771,6 +793,386 @@ import java.util.function.Predicate;
 @UiThread
 public class View implements Drawable.Callback, KeyEvent.Callback,
         AccessibilityEventSource {
+	
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(View)";
+    private static final boolean DUI_DEBUG = false;
+	
+	// For InputConnection
+    private static final int DO_GET_TEXT_AFTER_CURSOR = 10;
+    private static final int DO_GET_TEXT_BEFORE_CURSOR = 20;
+    private static final int DO_GET_SELECTED_TEXT = 25;
+    private static final int DO_GET_CURSOR_CAPS_MODE = 30;
+    private static final int DO_GET_EXTRACTED_TEXT = 40;
+    private static final int DO_COMMIT_TEXT = 50;
+    private static final int DO_COMMIT_COMPLETION = 55;
+    private static final int DO_COMMIT_CORRECTION = 56;
+    private static final int DO_SET_SELECTION = 57;
+    private static final int DO_PERFORM_EDITOR_ACTION = 58;
+    private static final int DO_PERFORM_CONTEXT_MENU_ACTION = 59;
+    private static final int DO_SET_COMPOSING_TEXT = 60;
+    private static final int DO_SET_COMPOSING_REGION = 63;
+    private static final int DO_FINISH_COMPOSING_TEXT = 65;
+    private static final int DO_SEND_KEY_EVENT = 70;
+    private static final int DO_DELETE_SURROUNDING_TEXT = 80;
+    private static final int DO_DELETE_SURROUNDING_TEXT_IN_CODE_POINTS = 81;
+    private static final int DO_BEGIN_BATCH_EDIT = 90;
+    private static final int DO_END_BATCH_EDIT = 95;
+    private static final int DO_PERFORM_PRIVATE_COMMAND = 120;
+    private static final int DO_CLEAR_META_KEY_STATES = 130;
+    private static final int DO_REQUEST_UPDATE_CURSOR_ANCHOR_INFO = 140;
+    private static final int DO_CLOSE_CONNECTION = 150;
+    private static final int DO_COMMIT_CONTENT = 160;
+
+    /** @hide */
+	public FLUIDManager mFLUIDManager;
+
+    /** @hide */
+	public Kryo mKryo;
+
+	/** @hide */
+	public int mRemoteId = -1;
+
+	/** @hide */
+	public int mParentRemoteId = -1;
+
+	/** @hide */
+	public transient InputConnection mInputConn = null;
+
+	/** @hide */
+	public transient boolean mFLUIDSelected = false;
+
+	/** @hide */
+	public transient int mFLUIDSelectMode = 0;
+
+	/** @hide */
+	public transient int mSelectedCount = 0;  // For its children
+
+	/** @hide */
+	public transient boolean mIsTarget = false; 
+
+	/** @hide */
+	public boolean mIsInScrollingContainer = false;
+
+	/** @hide */
+	public int mOrigWidth = 0;
+
+	/** @hide */
+	public int mOrigHeight = 0;
+
+	private transient LinearLayout mOverlayBound = null;
+
+	/** @hide */
+	public void draw() {
+		draw(null, null, 0);
+	}
+
+	/** @hide */
+    public void dispatchAttachedToWindow() {
+		dispatchAttachedToWindow(null, 0);
+	}
+
+	/** @hide */
+	public void dispatchDetachedFromWindowForFLUID() {
+        onDetachedFromWindow();
+        onDetachedFromWindowInternal();
+	}
+
+	/** @hide */
+	public ViewGroup.LayoutParams clearLayoutParamsForFLUID() {
+		ViewGroup.LayoutParams params = mLayoutParams;
+		mLayoutParams = null;
+		return params;
+	}
+
+	/** @hide */
+	public void resetLayoutParamsForFLUID(ViewGroup.LayoutParams params) {
+		mLayoutParams = params;
+	}
+
+	/** @hide */
+	public float setScaleForFLUID(float coordX) {
+        final int x = Math.round(coordX);
+        final int width = getWidth();
+        final int availableWidth = width - mPaddingLeft - mPaddingRight;
+        float scale;
+
+		if (x < mPaddingLeft) {
+			scale = 0.0f;
+		} else if (x > width - mPaddingRight) {
+			scale = 1.0f;
+		} else {
+			scale = (x - mPaddingLeft) / (float) availableWidth;
+		}
+		return scale;
+	}
+
+
+	private boolean isInTouchBound(MotionEvent event) {
+		float x = event.getX();
+		float y = event.getY();
+		if (x > getWidth() || y > getHeight()) {
+			return false;
+		}
+		return true;
+	}
+
+	private void addOverlayBound(boolean needOverlay) {
+		if (needOverlay) {
+			WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+					getWidth(),
+					getHeight(),
+					WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+					WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+					|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+					|WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+					PixelFormat.TRANSLUCENT);
+			params.gravity = Gravity.LEFT | Gravity.TOP;
+			int[] xy = new int[2];
+			getLocationInWindow(xy);
+			params.x = xy[0];
+
+			if (getContext() instanceof Activity) {
+				View decorView = ((Activity)getContext()).getWindow().getDecorView();
+				int flags = decorView.getSystemUiVisibility();
+				if ((flags & SYSTEM_UI_FLAG_FULLSCREEN) != 0)
+					params.y = xy[1];
+				else
+					params.y = xy[1] - 84;
+			}
+			else
+				params.y = xy[1] - 84;
+
+			if (mOverlayBound == null) {
+				mOverlayBound = new LinearLayout(mContext);
+				GradientDrawable gd = new GradientDrawable();
+				gd.setStroke(20, 0xffff0000);
+				gd.setColor(0);
+				mOverlayBound.setBackground(gd);
+			}
+
+			WindowManager wm = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
+			wm.addView(mOverlayBound, params);
+		}
+
+		ViewGroup parent = (ViewGroup)getParent();
+		while (parent != null) {
+			parent.mSelectedCount += 1;
+			if (parent.getId() == android.R.id.content) 
+				break;
+			parent = (ViewGroup)parent.getParent();
+		}
+		
+		mFLUIDSelected = true;
+		Log.d(DUI_TAG, "dispatchTouchEvent(), select UI! " + this);
+	}
+
+	/** @hide */
+	public void removeOverlayBound() {
+		if (mOverlayBound != null) {
+			WindowManager wm = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
+			wm.removeView(mOverlayBound);
+			mOverlayBound = null;
+		}
+
+		ViewGroup parent = (ViewGroup)getParent();
+		while (parent != null) {
+			parent.mSelectedCount -= 1;
+			if (parent.getId() == android.R.id.content)
+				break;
+			parent = (ViewGroup)parent.getParent();
+		}
+		mFLUIDSelected = false;
+	}
+
+	/** @hide */
+	private void addOverlayBoundForSiblings() {
+		ViewGroup parent = (ViewGroup)getParent();
+		parent.addOnlyOverlay();
+		int childCount = parent.getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            View child = parent.getChildAt(i);
+			if (child.mFLUIDSelected) {
+				child.removeOverlayBound();
+				mFLUIDManager.mOverlayList.remove(child);
+			}
+			child.addOverlayBound(false);
+			mFLUIDManager.mOverlayList.add(this);
+			child.mFLUIDSelectMode = 2;
+		}
+	}
+
+	/** @hide */
+	private void removeOverlayBoundForSiblings() {
+		ViewGroup parent = (ViewGroup)getParent();
+		parent.removeOnlyOverlay();
+		int childCount = parent.getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            View child = parent.getChildAt(i);
+			child.removeOverlayBound();
+			mFLUIDManager.mOverlayList.remove(child);
+			child.mFLUIDSelectMode = 0;
+		}
+	}
+
+	/** @hide */
+	public void addOnlyOverlay() {
+		WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+				getWidth(),
+				getHeight(),
+				WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+				WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+				|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+				|WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+				PixelFormat.TRANSLUCENT);
+		params.gravity = Gravity.LEFT | Gravity.TOP;
+		int[] xy = new int[2];
+		getLocationInWindow(xy);
+		params.x = xy[0];
+
+		View decorView = ((Activity)getContext()).getWindow().getDecorView();
+		int flags = decorView.getSystemUiVisibility();
+		if ((flags & SYSTEM_UI_FLAG_FULLSCREEN) != 0)
+			params.y = xy[1];
+		else
+			params.y = xy[1] - 84;
+
+		if (mOverlayBound == null) {
+			mOverlayBound = new LinearLayout(mContext);
+			GradientDrawable gd = new GradientDrawable();
+			gd.setStroke(20, 0xffff0000);
+			gd.setColor(0);
+			mOverlayBound.setBackground(gd);
+		}
+
+		WindowManager wm = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
+		wm.addView(mOverlayBound, params);
+	}
+
+	/** @hide */
+	public void removeOnlyOverlay() {
+		if (mOverlayBound != null) {
+			WindowManager wm = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
+			wm.removeView(mOverlayBound);
+			mOverlayBound = null;
+		}
+	}
+
+	/** @hide */
+	public void dispatchIMEInput(Message msg, CharSequence text, String str, Bundle bundle) {
+		if (DUI_DEBUG) {
+			Log.d(DUI_TAG, "dispatchIMEInput()"
+					+ ", msg = " + msg 
+					+ ", msg.what = " + msg.what
+					+ ", text = " + text
+					+ ", str = " + str
+					+ ", bundle = " + bundle);
+		}
+		if (mInputConn == null)
+			return;
+        switch (msg.what) {
+            case DO_GET_TEXT_AFTER_CURSOR: {
+                mInputConn.getTextAfterCursor(msg.arg1, msg.arg2);
+				return;
+			}
+            case DO_GET_TEXT_BEFORE_CURSOR: {
+                mInputConn.getTextBeforeCursor(msg.arg1, msg.arg2);
+				return;
+			}
+            case DO_GET_SELECTED_TEXT: {
+                mInputConn.getSelectedText(msg.arg1);
+				return;
+			}
+            case DO_GET_CURSOR_CAPS_MODE: {
+                mInputConn.getCursorCapsMode(msg.arg1);
+				return;
+			}
+            case DO_GET_EXTRACTED_TEXT: {
+                mInputConn.getExtractedText(
+					(ExtractedTextRequest)msg.obj, msg.arg1);
+				return;
+			}
+            case DO_COMMIT_TEXT: {
+                mInputConn.commitText(text, msg.arg1);
+				return;
+			}
+            case DO_SET_SELECTION: {
+                mInputConn.setSelection(msg.arg1, msg.arg2);
+                return;
+			}
+            case DO_PERFORM_EDITOR_ACTION: {
+                mInputConn.performEditorAction(msg.arg1);
+                return;
+			}
+            case DO_PERFORM_CONTEXT_MENU_ACTION: {
+                mInputConn.performContextMenuAction(msg.arg1);
+                return;
+			}
+            case DO_COMMIT_COMPLETION: {
+                mInputConn.commitCompletion((CompletionInfo)msg.obj);
+                return;
+			}
+            case DO_COMMIT_CORRECTION: {
+                mInputConn.commitCorrection((CorrectionInfo)msg.obj);
+                return;
+			}
+            case DO_SET_COMPOSING_TEXT: {
+                mInputConn.setComposingText(text, msg.arg1);
+				return;
+			}
+            case DO_SET_COMPOSING_REGION: {
+                mInputConn.setComposingRegion(msg.arg1, msg.arg2);
+                return;
+			}
+            case DO_FINISH_COMPOSING_TEXT: {
+                mInputConn.finishComposingText();
+                return;
+			}
+            case DO_SEND_KEY_EVENT: {
+                mInputConn.sendKeyEvent((KeyEvent)msg.obj);
+                return;
+			}
+            case DO_CLEAR_META_KEY_STATES: {
+                mInputConn.clearMetaKeyStates(msg.arg1);
+                return;
+			}
+            case DO_DELETE_SURROUNDING_TEXT: {
+                mInputConn.deleteSurroundingText(msg.arg1, msg.arg2);
+                return;
+			}
+            case DO_DELETE_SURROUNDING_TEXT_IN_CODE_POINTS: {
+                mInputConn.deleteSurroundingTextInCodePoints(msg.arg1, msg.arg2);
+                return;
+			}
+            case DO_BEGIN_BATCH_EDIT: {
+                mInputConn.beginBatchEdit();
+                return;
+			}
+            case DO_END_BATCH_EDIT: {
+                mInputConn.endBatchEdit();
+                return;
+			}
+            case DO_PERFORM_PRIVATE_COMMAND: {
+                mInputConn.performPrivateCommand(str, bundle);
+				return;
+			}
+            case DO_REQUEST_UPDATE_CURSOR_ANCHOR_INFO: {
+                mInputConn.requestCursorUpdates(msg.arg1);
+				return;
+			}
+            case DO_CLOSE_CONNECTION: {
+                mInputConn.closeConnection();
+				return;
+			}
+            case DO_COMMIT_CONTENT: {
+				mInputConn.commitContent((InputContentInfo)msg.obj, msg.arg1, bundle);
+				return;
+			}
+		}
+
+	}
+	/* mobiledui: end */
+
     private static final boolean DBG = false;
 
     /** @hide */
@@ -2157,7 +2559,10 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * @see #setTag(Object)
      * @see #getTag()
      */
-    protected Object mTag = null;
+    //protected Object mTag = null;
+	/* mobiledui: start */
+    transient protected Object mTag = null;
+	/* mobiledui: end */
 
     // for mPrivateFlags:
     /** {@hide} */
@@ -3707,7 +4112,10 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      *
      * @see #getParent()
      */
-    protected ViewParent mParent;
+    //protected ViewParent mParent;
+	/* mobiledui: start */
+    transient protected ViewParent mParent;
+	/* mobiledui: end */
 
     /**
      * {@hide}
@@ -3828,28 +4236,40 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * {@hide}
      */
     @ViewDebug.ExportedProperty(category = "layout")
-    protected int mLeft;
+    //protected int mLeft;
+	/* mobiledui: start */
+    protected transient int mLeft;
+	/* mobiledui: end */
     /**
      * The distance in pixels from the left edge of this view's parent
      * to the right edge of this view.
      * {@hide}
      */
     @ViewDebug.ExportedProperty(category = "layout")
-    protected int mRight;
+    //protected int mRight;
+	/* mobiledui: start */
+    protected transient int mRight;
+	/* mobiledui: end */
     /**
      * The distance in pixels from the top edge of this view's parent
      * to the top edge of this view.
      * {@hide}
      */
     @ViewDebug.ExportedProperty(category = "layout")
-    protected int mTop;
+    //protected int mTop;
+	/* mobiledui: start */
+    protected transient int mTop;
+	/* mobiledui: end */
     /**
      * The distance in pixels from the top edge of this view's parent
      * to the bottom edge of this view.
      * {@hide}
      */
     @ViewDebug.ExportedProperty(category = "layout")
-    protected int mBottom;
+    //protected int mBottom;
+	/* mobiledui: start */
+    protected transient int mBottom;
+	/* mobiledui: end */
 
     /**
      * The offset, in pixels, by which the content of this view is scrolled
@@ -4290,7 +4710,10 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     /**
      * Special tree observer used when mAttachInfo is null.
      */
-    private ViewTreeObserver mFloatingTreeObserver;
+    //private ViewTreeObserver mFloatingTreeObserver;
+	/* mobiledui: start */
+    transient private ViewTreeObserver mFloatingTreeObserver;
+	/* mobiledui: end */
 
     /**
      * Cache the touch slop from the context that created the view.
@@ -4575,6 +4998,9 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
         mUserPaddingStart = UNDEFINED_PADDING;
         mUserPaddingEnd = UNDEFINED_PADDING;
         mRenderNode = RenderNode.create(getClass().getName(), this);
+		/* mobiledui: start */
+		mFLUIDManager = FLUIDManager.getInstance();
+		/* mobiledui: end */
 
         if (!sCompatibilityDone && context != null) {
             final int targetSdkVersion = context.getApplicationInfo().targetSdkVersion;
@@ -11739,6 +12165,70 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * @return True if the event was handled by the view, false otherwise.
      */
     public boolean dispatchTouchEvent(MotionEvent event) {
+		/* mobiledui: start */
+		//Log.d(DUI_TAG, "dispatchTouchEvent()" 
+		//		+ ", this = " + this
+		//		+ ", zFLUIDFlags = " + zFLUIDFlags
+		//		+ ", zObjectId = " + zObjectId
+		//		+ ", mFLUIDManager = " + mFLUIDManager
+		//		+ ", mContext = " + mContext
+		//		+ ", event = " + event);
+
+		if (mFLUIDManager != null && mFLUIDManager.mUiSelectionMode
+				&& event.getAction() != MotionEvent.ACTION_MOVE) {
+			// TODO: Handling the hard coding
+			String className = getClass().getName();
+			if (className.equals("com.kxsimon.cmvideo.chat.frame.FrameAnimationView")
+				|| className.equals("com.siyanhui.mojif.bqliveapp.BQLAnimationView")) 
+				return false;
+
+			Log.d(DUI_TAG, "UI selection mode" 
+					+ ", this = " + this
+					+ ", zFLUIDFlags = " + zFLUIDFlags
+					+ ", zObjectId = " + zObjectId
+					+ ", isViewGroup = " + (this instanceof ViewGroup)
+					+ ", isInTouchBound = " + isInTouchBound(event)
+					+ ", mFLUIDSelected = " + mFLUIDSelected);
+			if (this instanceof ViewGroup) 
+				return false;
+			if (event.getAction() == MotionEvent.ACTION_UP && isInTouchBound(event)) {
+				mFLUIDSelectMode += 1;
+				if (mFLUIDSelectMode == 3)
+					mFLUIDSelectMode = 0;
+				
+				if (mFLUIDSelectMode == 1) {
+					addOverlayBound(true);
+					mFLUIDManager.mOverlayList.add(this);
+				}
+				else if (mFLUIDSelectMode == 2) {
+					addOverlayBoundForSiblings();
+				}
+				else if (mFLUIDSelectMode == 0) {
+					removeOverlayBoundForSiblings();
+				}
+			}
+			return true;
+		}
+		else if (mFLUIDManager != null && mFLUIDManager.mUiSelectionMode
+				&& event.getAction() == MotionEvent.ACTION_MOVE
+				&& (this instanceof android.widget.SeekBar)) {
+			return true;
+		}
+
+		if (mFLUIDManager != null && !mFLUIDManager.mIsHostDevice && mFLUIDManager.isMigrated(this)
+				&& !event.mIsFromHost && !(this instanceof ViewGroup)) {
+			float originalX = event.getX();
+			float originalY = event.getY();
+			float normalizedX = originalX / (float)getWidth();
+			float normalizedY = originalY / (float)getHeight();
+			event.setLocation(normalizedX, normalizedY);
+			mFLUIDManager.sendInput(zObjectId, event, true);
+
+			//event.setLocation(originalX, originalY);
+			return true;
+		}
+		/* mobiledui: end */
+
         // If the event should be handled by accessibility focus first.
         if (event.isTargetAccessibilityFocus()) {
             // We don't have focus or no virtual descendant has it, do not handle the event.
@@ -11748,6 +12238,9 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
             // We have focus and got the event, then use normal event dispatch.
             event.setTargetAccessibilityFocus(false);
         }
+		/* mobiledui: start */
+		//Log.d(DUI_TAG, "dispatchTouchEvent(), bp 1");
+		/* mobiledui: end */
 
         boolean result = false;
 
@@ -11760,27 +12253,42 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
             // Defensive cleanup for new gesture
             stopNestedScroll();
         }
+		/* mobiledui: start */
+		//Log.d(DUI_TAG, "dispatchTouchEvent(), bp 2");
+		/* mobiledui: end */
 
-        if (onFilterTouchEventForSecurity(event)) {
-            if ((mViewFlags & ENABLED_MASK) == ENABLED && handleScrollBarDragging(event)) {
-                result = true;
-            }
-            //noinspection SimplifiableIfStatement
-            ListenerInfo li = mListenerInfo;
-            if (li != null && li.mOnTouchListener != null
-                    && (mViewFlags & ENABLED_MASK) == ENABLED
-                    && li.mOnTouchListener.onTouch(this, event)) {
-                result = true;
-            }
+		if (onFilterTouchEventForSecurity(event)) {
+			/* mobiledui: start */
+			//Log.d(DUI_TAG, "dispatchTouchEvent(), bp 3");
+			/* mobiledui: end */
+			if ((mViewFlags & ENABLED_MASK) == ENABLED && handleScrollBarDragging(event)) {
+				result = true;
+			}
+			/* mobiledui: start */
+			//Log.d(DUI_TAG, "dispatchTouchEvent(), bp 4, result = " + result);
+			/* mobiledui: end */
+			//noinspection SimplifiableIfStatement
+			ListenerInfo li = mListenerInfo;
+			if (li != null && li.mOnTouchListener != null
+					&& (mViewFlags & ENABLED_MASK) == ENABLED
+					&& li.mOnTouchListener.onTouch(this, event)) {
+				result = true;
+			}
+			/* mobiledui: start */
+			//Log.d(DUI_TAG, "dispatchTouchEvent(), bp 5, result = " + result);
+			/* mobiledui: end */
 
-            if (!result && onTouchEvent(event)) {
-                result = true;
-            }
-        }
+			if (!result && onTouchEvent(event)) {
+				result = true;
+			}
+			/* mobiledui: start */
+			//Log.d(DUI_TAG, "dispatchTouchEvent(), bp 6, result = " + result);
+			/* mobiledui: end */
+		}
 
-        if (!result && mInputEventConsistencyVerifier != null) {
-            mInputEventConsistencyVerifier.onUnhandledEvent(event, 0);
-        }
+		if (!result && mInputEventConsistencyVerifier != null) {
+			mInputEventConsistencyVerifier.onUnhandledEvent(event, 0);
+		}
 
         // Clean up after nested scrolls if this is the end of a gesture;
         // also cancel it if we tried an ACTION_DOWN but we didn't want the rest
@@ -12012,6 +12520,12 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      */
     public final boolean dispatchPointerEvent(MotionEvent event) {
         if (event.isTouchEvent()) {
+			/* mobiledui: start */
+			if (mContext instanceof android.app.Activity) {
+				boolean res = ((android.app.Activity)mContext).triggerUiSelection(event);
+				if (res) return true;
+			}
+			/* mobiledui: end */
             return dispatchTouchEvent(event);
         } else {
             return dispatchGenericMotionEvent(event);
@@ -12996,7 +13510,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
 
         if (clickable || (viewFlags & TOOLTIP) == TOOLTIP) {
             switch (action) {
-                case MotionEvent.ACTION_UP:
+				case MotionEvent.ACTION_UP:
                     mPrivateFlags3 &= ~PFLAG3_FINGER_DOWN;
                     if ((viewFlags & TOOLTIP) == TOOLTIP) {
                         handleTooltipUp();
@@ -13009,6 +13523,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
                         mIgnoreNextUpEvent = false;
                         break;
                     }
+
                     boolean prepressed = (mPrivateFlags & PFLAG_PREPRESSED) != 0;
                     if ((mPrivateFlags & PFLAG_PRESSED) != 0 || prepressed) {
                         // take focus if we don't have it already and we should in
@@ -13137,6 +13652,10 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * @hide
      */
     public boolean isInScrollingContainer() {
+		/* mobiledui: start */
+		if (mFLUIDManager != null && !mFLUIDManager.mIsHostDevice && mFLUIDManager.isMigrated(this))
+			return mIsInScrollingContainer;
+		/* mobiledui: end */
         ViewParent p = getParent();
         while (p != null && p instanceof ViewGroup) {
             if (((ViewGroup) p).shouldDelayChildPressedState()) {
@@ -18831,6 +19350,30 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * and hardware acceleration.
      */
     boolean draw(Canvas canvas, ViewGroup parent, long drawingTime) {
+		/* mobiledui: start */
+		if (FLUIDManager.isMigrated(this) && FLUIDManager.isInRemote(this)) {
+			if (this instanceof ViewGroup) {
+				String className = getClass().getName();
+				if (className.equals("android.support.design.widget.TextInputLayout"))
+					return false;
+
+				boolean shouldInvisible = true;
+				ViewGroup vg = (ViewGroup)this;
+				for (int i = 0; i < vg.getChildCount(); i++) {
+					View child = vg.getChildAt(i);
+					if (!FLUIDManager.isMigrated(child) || !FLUIDManager.isInRemote(child)) {
+						shouldInvisible = false;
+						break;
+					}
+				}
+				if (shouldInvisible)
+					return false;
+			}
+			else {
+				return false;
+			}
+		}
+		/* mobiledui: end */
         final boolean hardwareAcceleratedCanvas = canvas.isHardwareAccelerated();
         /* If an attached view draws to a HW canvas, it may use its RenderNode + DisplayList.
          *
@@ -20004,7 +20547,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
         boolean changed = false;
 
         final Drawable bg = mBackground;
-        if (bg != null && bg.isStateful()) {
+		if (bg != null && bg.isStateful()) {
             changed |= bg.setState(state);
         }
 

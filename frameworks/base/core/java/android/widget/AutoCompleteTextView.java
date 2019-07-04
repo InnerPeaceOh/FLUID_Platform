@@ -102,7 +102,10 @@ public class AutoCompleteTextView extends EditText implements Filter.FilterListe
     /** Context used to inflate the popup window or dialog. */
     private final Context mPopupContext;
 
-    private final ListPopupWindow mPopup;
+    //private final ListPopupWindow mPopup;
+	/* mobiledui: start */
+    private transient final ListPopupWindow mPopup;
+	/* mobiledui: end */
     private final PassThroughClickListener mPassThroughClickListener;
 
     private CharSequence mHintText;

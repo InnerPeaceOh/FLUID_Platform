@@ -37,6 +37,9 @@ import java.lang.reflect.Modifier;
 import java.util.TimeZone;
 import java.util.logging.LogManager;
 import org.apache.harmony.luni.internal.util.TimezoneGetter;
+/* mobiledui: start */
+import android.fluid.FLUIDManager;
+/* mobiledui: end */
 
 /**
  * Main entry point for runtime initialization.  Not for
@@ -111,6 +114,14 @@ public class RuntimeInit {
                 if (ActivityThread.currentActivityThread() != null) {
                     ActivityThread.currentActivityThread().stopProfiling();
                 }
+
+				/* mobiledui: start */
+				if (ActivityThread.currentPackageName().equals("com.fluid.wrapperapp")) {
+					FLUIDManager duiManager = FLUIDManager.getInstance();
+					if (duiManager != null)
+						duiManager.notifyAppCrash(mApplicationObject);
+				}
+				/* mobiledui: end */
 
                 // Bring up crash dialog, wait for it to be dismissed
                 ActivityManager.getService().handleApplicationCrash(

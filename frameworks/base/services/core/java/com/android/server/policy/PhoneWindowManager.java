@@ -2440,6 +2440,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     @Override
     public int checkAddPermission(WindowManager.LayoutParams attrs, int[] outAppOp) {
         int type = attrs.type;
+		/* mobiledui: start */
+		if (type == TYPE_APPLICATION_OVERLAY)
+			return ADD_OKAY;
+		/* mobiledui: end */
 
         outAppOp[0] = AppOpsManager.OP_NONE;
 

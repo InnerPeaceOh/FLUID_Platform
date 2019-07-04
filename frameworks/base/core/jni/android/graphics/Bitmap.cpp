@@ -34,6 +34,10 @@
 #include <string.h>
 #include <memory>
 #include <string>
+/* mobiledui: start */
+#include <sys/mman.h>
+#include <cutils/ashmem.h>
+/* mobiledui: end */
 
 #define DEBUG_PARCEL 0
 #define ASHMEM_BITMAP_MIN_SIZE (128 * (1 << 10))
@@ -1538,9 +1542,176 @@ static void Bitmap_copyColorSpace(JNIEnv* env, jobject, jlong srcBitmapPtr, jlon
     dstBitmapHandle->bitmap().setColorSpace(srcBitmapHandle->bitmap().info().refColorSpace());
 }
 
+/* mobiledui: start */
+#define FLATTEN(dst, src, size) \
+			{ \
+				memcpy(dst, src, size); \
+				dst += size; \
+			}
+
+#define FLATTEN_VAL(dst, value, type) \
+			{ \
+				type _var = value; \
+				memcpy(dst, &_var, sizeof(type)); \
+				dst += sizeof(type); \
+			}
+
+#define UNFLATTEN(dst, src, size) \
+			{ \
+				memcpy(dst, src, size); \
+				src += size; \
+			}
+
+static size_t getSizeForFLUID(BitmapWrapper* bitmapWrapper, SkBitmap& bitmap, jboolean isMutable) {
+	size_t size = sizeof(jboolean) + sizeof(int) * 2 + sizeof(uint64_t);
+    SkColorSpace* colorSpace = bitmap.colorSpace();
+    if (colorSpace != nullptr && bitmap.colorType() != kRGBA_F16_SkColorType) {
+        sk_sp<SkData> data = colorSpace->serialize();
+		size += data->size();
+	}
+	size += (sizeof(int) * 3) + sizeof(jint) + sizeof(uint64_t);
+	int fd = bitmapWrapper->bitmap().getAshmemFd();
+    if (fd >= 0 && !isMutable) {
+		size += ashmem_get_size_region(fd);
+		return size;
+	}
+	size += (sizeof(uint64_t) + bitmap.getSize());
+	return size;
+}
+
+static jbyteArray flattenForFLUID(JNIEnv* env, jobject clazz, jlong handle, 
+		                     jboolean isMutable, jint density) {
+    SkBitmap bitmap;
+    auto bitmapWrapper = reinterpret_cast<BitmapWrapper*>(handle);
+    bitmapWrapper->getSkBitmap(&bitmap);
+
+	size_t size = getSizeForFLUID(bitmapWrapper, bitmap, isMutable);
+	jbyte *buffer = new jbyte[size], *ptr = buffer;
+
+	FLATTEN(ptr, &isMutable, sizeof(jboolean));
+	FLATTEN_VAL(ptr, bitmap.colorType(), int);
+	FLATTEN_VAL(ptr, bitmap.alphaType(), int);
+    SkColorSpace* colorSpace = bitmap.colorSpace();
+    if (colorSpace != nullptr && bitmap.colorType() != kRGBA_F16_SkColorType) {
+        sk_sp<SkData> data = colorSpace->serialize();
+        uint64_t dataSize = (uint64_t)data->size();
+		FLATTEN(ptr, &dataSize, sizeof(uint64_t));
+		if (dataSize > 0)
+			FLATTEN(ptr, data->data(), dataSize);
+	}
+	else
+		FLATTEN_VAL(ptr, 0, uint64_t);
+	
+	FLATTEN_VAL(ptr, bitmap.width(), int);
+	FLATTEN_VAL(ptr, bitmap.height(), int);
+	FLATTEN_VAL(ptr, bitmap.rowBytes(), int);
+	FLATTEN(ptr, &density, sizeof(jint));
+    
+	int fd = bitmapWrapper->bitmap().getAshmemFd();
+    if (fd >= 0 && !isMutable) {
+		uint64_t ashmemSize = (uint64_t)ashmem_get_size_region(fd);
+		FLATTEN(ptr, &ashmemSize, sizeof(uint64_t));
+		uint8_t *base = (uint8_t*) mmap(NULL, ashmemSize, PROT_READ, MAP_SHARED, fd, 0);
+		FLATTEN(ptr, base, ashmemSize);
+		jbyteArray res = env->NewByteArray(size);
+		env->SetByteArrayRegion(res, 0, size, buffer);
+		close(fd);
+		munmap((void*) base, ashmemSize);
+		delete[] buffer;
+		return res;
+	}
+	else
+		FLATTEN_VAL(ptr, 0, uint64_t);
+
+	uint64_t bitmapSize = (uint64_t)bitmap.getSize();
+	FLATTEN_VAL(ptr, bitmapSize, uint64_t);
+    const void* pSrc =  bitmap.getPixels();
+	if (pSrc == NULL) {
+		memset(ptr, 0, bitmapSize);
+	}
+	else {
+		FLATTEN(ptr, pSrc, bitmapSize);
+	}
+
+	jbyteArray res = env->NewByteArray(size);
+	env->SetByteArrayRegion(res, 0, size, buffer);
+	delete[] buffer;
+	return res;
+}
+
+static jlong unflattenForFLUID(JNIEnv* env, jobject clazz, jbyteArray byteArray) {
+	jbyte *buffer = env->GetByteArrayElements(byteArray, 0), *ptr = buffer;
+	bool isMutable; 
+	SkColorType colorType;
+	SkAlphaType alphaType;
+	uint64_t colorSpaceSize;
+
+	UNFLATTEN(&isMutable, ptr, sizeof(jboolean));
+	UNFLATTEN(&colorType, ptr, sizeof(int));
+	UNFLATTEN(&alphaType, ptr, sizeof(int));
+	UNFLATTEN(&colorSpaceSize, ptr, sizeof(uint64_t));
+
+    sk_sp<SkColorSpace> colorSpace;
+    if (kRGBA_F16_SkColorType == colorType) {
+        colorSpace = SkColorSpace::MakeSRGBLinear();
+    } else if (colorSpaceSize > 0) {
+		void* data = new uint8_t[colorSpaceSize];
+		UNFLATTEN(data, ptr, colorSpaceSize);
+        colorSpace = SkColorSpace::Deserialize(data, colorSpaceSize);
+	}
+
+	int width, height, rowBytes, density;
+	UNFLATTEN(&width, ptr, sizeof(int));
+	UNFLATTEN(&height, ptr, sizeof(int));
+	UNFLATTEN(&rowBytes, ptr, sizeof(int));
+	UNFLATTEN(&density, ptr, sizeof(jint));
+
+    std::unique_ptr<SkBitmap> bitmap(new SkBitmap);
+    if (!bitmap->setInfo(SkImageInfo::Make(width, height, colorType, alphaType, colorSpace),
+            rowBytes)) {
+		return 0;
+    }
+    uint64_t size = (uint64_t)bitmap->getSize();
+	sk_sp<Bitmap> nativeBitmap;
+
+	uint64_t ashmemSize;
+	UNFLATTEN(&ashmemSize, ptr, sizeof(uint64_t));
+	if (ashmemSize > 0) {
+		int fd = ashmem_create_region("Parcel Blob", ashmemSize);
+		uint8_t *base = (uint8_t*) mmap(NULL, ashmemSize, 
+								PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+		UNFLATTEN(base, ptr, ashmemSize);
+	
+        nativeBitmap = sk_sp<Bitmap>(GraphicsJNI::mapAshmemBitmap(env, bitmap.get(),
+                fd, reinterpret_cast<void*>(base), size, !isMutable));
+		if (!nativeBitmap)
+			return 0;
+		munmap((void*) base, ashmemSize);
+		BitmapWrapper* bitmapWrapper = new BitmapWrapper(nativeBitmap.release());
+		return reinterpret_cast<jlong>(bitmapWrapper);
+	}
+
+	uint64_t bitmapSize;
+	UNFLATTEN(&bitmapSize, ptr, sizeof(uint64_t));
+    nativeBitmap = Bitmap::allocateHeapBitmap(bitmap.get());
+    if (!nativeBitmap)
+		return 0;
+	UNFLATTEN(bitmap->getPixels(), ptr, size);
+    BitmapWrapper* bitmapWrapper = new BitmapWrapper(nativeBitmap.release());
+	return reinterpret_cast<jlong>(bitmapWrapper);
+}
+#undef FLATTEN
+#undef FLATTEN_VAL
+#undef UNFLATTEN
+/* mobiledui: end */
+
 ///////////////////////////////////////////////////////////////////////////////
 
 static const JNINativeMethod gBitmapMethods[] = {
+	/* mobiledui: start */
+    {"nativeFLUIDFlatten", "(JZI)[B", (void*) flattenForFLUID},
+    {"nativeFLUIDUnflatten", "([B)J", (void*) unflattenForFLUID},
+	/* mobiledui: end */
     {   "nativeCreate",             "([IIIIIIZ[FLandroid/graphics/ColorSpace$Rgb$TransferParameters;)Landroid/graphics/Bitmap;",
         (void*)Bitmap_creator },
     {   "nativeCopy",               "(JIZ)Landroid/graphics/Bitmap;",

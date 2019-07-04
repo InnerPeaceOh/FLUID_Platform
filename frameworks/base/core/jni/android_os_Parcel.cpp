@@ -756,6 +756,76 @@ static jlong android_os_Parcel_getBlobAshmemSize(jlong nativePtr)
     return 0;
 }
 
+/* mobiledui: start */
+static void android_os_Parcel_writeToAshmem(JNIEnv* env, jclass clazz, jlong nativePtr, jobject data,
+                                        jint offset, jint length) {
+    Parcel* parcel = reinterpret_cast<Parcel*>(nativePtr);
+    if (parcel == NULL) {
+        return;
+    }
+
+    if (data == NULL) {
+        const status_t err = parcel->writeInt32(-1);
+        if (err != NO_ERROR) {
+            signalExceptionForError(env, clazz, err);
+        }
+        return;
+    }
+
+    const status_t err = parcel->writeInt32(length);
+    if (err != NO_ERROR) {
+        signalExceptionForError(env, clazz, err);
+        return;
+    }
+
+    android::Parcel::WritableBlob blob;
+    android::status_t err2 = parcel->writeToAshmem(length, &blob);
+    if (err2 != NO_ERROR) {
+        signalExceptionForError(env, clazz, err2);
+        return;
+    }
+
+    jbyte* ar = (jbyte*)env->GetPrimitiveArrayCritical((jarray)data, 0);
+    if (ar == NULL) {
+        memset(blob.data(), 0, length);
+    } else {
+        memcpy(blob.data(), ar + offset, length);
+        env->ReleasePrimitiveArrayCritical((jarray)data, ar, 0);
+    }
+
+    blob.release();
+}
+
+static jbyteArray android_os_Parcel_readFromAshmem(JNIEnv* env, jclass clazz, jlong nativePtr)
+{
+    jbyteArray ret = NULL;
+
+    Parcel* parcel = reinterpret_cast<Parcel*>(nativePtr);
+    if (parcel != NULL) {
+        int32_t len = parcel->readInt32();
+        if (len >= 0) {
+            android::Parcel::ReadableBlob blob;
+            android::status_t err = parcel->readFromAshmem(len, &blob);
+            if (err != NO_ERROR) {
+                signalExceptionForError(env, clazz, err);
+                return NULL;
+            }
+
+            ret = env->NewByteArray(len);
+            if (ret != NULL) {
+                jbyte* a2 = (jbyte*)env->GetPrimitiveArrayCritical(ret, 0);
+                if (a2) {
+                    memcpy(a2, blob.data(), len);
+                    env->ReleasePrimitiveArrayCritical(ret, a2, 0);
+                }
+            }
+            blob.release();
+        }
+    }
+
+    return ret;
+}
+/* mobiledui: end */
 // ----------------------------------------------------------------------------
 
 static const JNINativeMethod gParcelMethods[] = {
@@ -831,6 +901,11 @@ static const JNINativeMethod gParcelMethods[] = {
 
     // @CriticalNative
     {"nativeGetBlobAshmemSize",       "(J)J", (void*)android_os_Parcel_getBlobAshmemSize},
+
+	/* mobiledui: start */
+    {"nativeWriteToAshmem",           "(J[BII)V", (void*)android_os_Parcel_writeToAshmem},
+    {"nativeReadFromAshmem",            "(J)[B", (void*)android_os_Parcel_readFromAshmem},
+	/* mobiledui: end */
 };
 
 const char* const kParcelPathName = "android/os/Parcel";

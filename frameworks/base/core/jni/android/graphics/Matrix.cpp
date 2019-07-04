@@ -329,9 +329,38 @@ public:
         const SkMatrix* b = reinterpret_cast<SkMatrix*>(bHandle);
         return *a == *b;
     }
+
+	/* mobiledui: start */
+	static jbyteArray flattenForFLUID(JNIEnv* env, jobject clazz, jlong handle) {
+        SkMatrix* obj = reinterpret_cast<SkMatrix*>(handle);
+		if (obj) {
+			size_t size = obj->getSizeForFLUID();
+			jbyte* buffer = new jbyte[size];
+			if(!obj->flattenForFLUID((uint8_t*)buffer))
+				return nullptr;
+			jbyteArray res = env->NewByteArray(size);
+			env->SetByteArrayRegion(res, 0, size, buffer);
+			delete[] buffer;
+			return res;
+		}
+		return nullptr;
+	}
+
+	static jboolean unflattenForFLUID(JNIEnv* env, jobject clazz, jlong handle, jbyteArray byteArray) {
+        SkMatrix* obj = reinterpret_cast<SkMatrix*>(handle);
+		jbyte *buffer = env->GetByteArrayElements(byteArray, 0);
+		if(!obj->unflattenForFLUID((uint8_t*)buffer))
+			return false;
+        return true;
+	}
+	/* mobiledui: end */
 };
 
 static const JNINativeMethod methods[] = {
+	/* mobiledui: start */
+    {"nativeFLUIDFlatten", "(J)[B", (void*) SkMatrixGlue::flattenForFLUID},
+    {"nativeFLUIDUnflatten", "(J[B)Z", (void*) SkMatrixGlue::unflattenForFLUID},
+	/* mobiledui: end */
     {"nGetNativeFinalizer", "()J", (void*) SkMatrixGlue::getNativeFinalizer},
     {"nCreate","(J)J", (void*) SkMatrixGlue::create},
 

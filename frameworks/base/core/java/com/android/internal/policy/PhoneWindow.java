@@ -113,6 +113,12 @@ import java.util.ArrayList;
  */
 public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
+	/* mobiledui: start */
+	public ViewGroup getContentParent() {
+		return mContentParent;
+	}
+	/* mobiledui: end */
+
     private final static String TAG = "PhoneWindow";
 
     private static final boolean DEBUG = false;

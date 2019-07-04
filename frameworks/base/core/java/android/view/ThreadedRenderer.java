@@ -681,7 +681,7 @@ public final class ThreadedRenderer {
                 canvas.translate(mInsetLeft, mInsetTop);
                 callbacks.onPreDraw(canvas);
 
-                canvas.insertReorderBarrier();
+				canvas.insertReorderBarrier();
                 canvas.drawRenderNode(view.updateDisplayListIfDirty());
                 canvas.insertInorderBarrier();
 

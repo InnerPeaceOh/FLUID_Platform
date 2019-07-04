@@ -159,6 +159,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
 
+/* mobiledui: start */
+import android.view.LayoutInflater;
+import android.view.ViewGroup;
+import android.view.InputEvent;
+import android.text.TextUtils;
+import com.android.internal.policy.PhoneWindow;
+import android.fluid.FLUIDManager;
+/* mobiledui: end */
+
 final class RemoteServiceException extends AndroidRuntimeException {
     public RemoteServiceException(String msg) {
         super(msg);
@@ -174,6 +183,234 @@ final class RemoteServiceException extends AndroidRuntimeException {
  * {@hide}
  */
 public final class ActivityThread {
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(ActivityThread)";
+    private static final boolean DUI_DEBUG = false;
+	private static FLUIDManager mFLUIDManager;
+
+	/** @hide */
+	public FLUIDManager getFLUIDManager() {
+		return mFLUIDManager;
+	}
+
+	private class UiData {
+		IBinder mToken;
+		String mPackageName;
+		byte[] mViewData;
+		String[] mClassNames;
+
+		UiData(IBinder token, String packageName, byte[] viewData, String[] classNames) {
+			mToken = token;
+			mPackageName = packageName;
+			mViewData = viewData;
+			mClassNames = classNames;
+		}
+	}
+
+	private class RpcData {
+		int mId;
+		String mMethodName;
+		String mMethodSig;
+		String[] mTypes;
+		byte[] mArgs;
+		Parcel mReply;
+		IBinder mToken;
+		RpcData(IBinder token, int id, String methodName, String methodSig, 
+				String[] types, byte[] args, Parcel reply) {
+			mId = id;
+			mMethodName = methodName;
+			mMethodSig = methodSig;
+			mTypes = types;
+			mArgs = args;
+			mToken = token;
+			mReply = reply;
+		}
+	}
+
+	private class InputData {
+		int mId;
+		InputEvent mEvent;
+		boolean mIsMotionEvent;
+		IBinder mToken;
+		InputData(IBinder token, int id, InputEvent event, boolean isMotionEvent) { 
+			mId = id;
+			mEvent = event;
+			mIsMotionEvent = isMotionEvent;
+			mToken = token;
+		}
+	}
+
+	private class IMEInputData {
+		int mId;
+		Message mMsg;
+		CharSequence mText;
+		String mStr;
+		Bundle mBundle;
+		IBinder mToken;
+		IMEInputData(IBinder token, int id, Message msg, CharSequence text, String str, Bundle bundle) { 
+			mId = id;
+			mMsg = msg;
+			mText = text;
+			mStr = str;
+			mBundle = bundle;
+			mToken = token;
+		}
+	}
+
+	private class CacheData {
+		int mObjectId;
+		byte[] mCacheData;
+		String mMethodName;
+		String mMethodSig;
+		Parcel mReply;
+		CacheData(int objectId, byte[] cacheData) { 
+			mObjectId = objectId;
+			mCacheData = cacheData;
+		}
+
+		CacheData(int objectId, String methodName, String methodSig, Parcel reply) { 
+			mObjectId = objectId;
+			mMethodName = methodName;
+			mMethodSig = methodSig;
+			mReply = reply;
+		}
+	}
+
+	private class NotifyData {
+		IBinder mToken;
+		NotifyData(IBinder token) { 
+			mToken = token;
+		}
+	}
+
+    void handleRestoreUi(UiData uiData) {
+        if (mActivities.get(uiData.mToken) == null)
+			return;
+		Activity activity = getActivity(uiData.mToken);
+		String packageName = uiData.mPackageName;
+		byte[] viewData = uiData.mViewData;
+		String[] classNames = uiData.mClassNames;
+		if (DUI_DEBUG) {
+			Log.d(DUI_TAG, "handleRestoreUi()"
+					+ ", activity = " + activity
+					+ ", packageName = " + packageName
+					+ ", viewData = " + viewData 
+					+ ", classNames = " + classNames);
+		}
+		ViewGroup contentParent = ((PhoneWindow)activity.getWindow()).getContentParent();
+		mFLUIDManager.restoreUi(activity, contentParent, packageName, viewData, classNames);
+    }
+
+    void handleExecuteRpc(RpcData rpcData) {
+        if (mActivities.get(rpcData.mToken) == null)
+			return;
+		Activity activity = getActivity(rpcData.mToken);
+		int id = rpcData.mId;
+		String methodName = rpcData.mMethodName;
+		String methodSig = rpcData.mMethodSig;
+		String[] types = rpcData.mTypes;
+		byte[] args = rpcData.mArgs;
+		Parcel reply = rpcData.mReply;
+
+		if (DUI_DEBUG) {
+			Log.d(DUI_TAG, "handleExecuteRpc()"
+					+ ", activity = " + activity
+					+ ", id = " + id
+					+ ", methodName = " + methodName 
+					+ ", methodSig = " + methodSig
+					+ ", types = " + types
+					+ ", args = " + args);
+		}
+		mFLUIDManager.executeRpc(id, methodName, methodSig, types, args, reply);
+		if (reply != null) {
+			synchronized (reply) {
+				mAppThread.mNotified = true;
+				reply.notify();
+			}
+		}
+    }
+
+    void handleDispatchInput(InputData inputData) {
+        if (mActivities.get(inputData.mToken) == null)
+			return;
+		Activity activity = getActivity(inputData.mToken);
+		int id = inputData.mId;
+		InputEvent event = inputData.mEvent;
+		boolean isMotionEvent = inputData.mIsMotionEvent;
+		if (DUI_DEBUG) {
+			Log.d(DUI_TAG, "handleDispatchInput()"
+					+ ", activity = " + activity
+					+ ", id = " + id
+					+ ", event = " + event
+					+ ", isMotionEvent = " + isMotionEvent);
+		}
+		View view = (View)mFLUIDManager.mKryo.mIdToObj.get(id);
+		mFLUIDManager.dispatchInput(view, event, isMotionEvent);
+    }
+
+    void handleDispatchIMEInput(IMEInputData inputData) {
+        if (mActivities.get(inputData.mToken) == null)
+			return;
+		Activity activity = getActivity(inputData.mToken);
+		int id = inputData.mId;
+		Message msg = inputData.mMsg;
+		CharSequence text = inputData.mText;
+		String str = inputData.mStr;
+		Bundle bundle = inputData.mBundle;
+		if (DUI_DEBUG) {
+			Log.d(DUI_TAG, "handleDispatchIMEInput()"
+					+ ", activity = " + activity
+					+ ", id = " + id
+					+ ", msg = " + msg
+					+ ", text = " + text
+					+ ", str = " + str
+					+ ", bundle = " + bundle);
+		}
+		View view = (View)mFLUIDManager.mKryo.mIdToObj.get(id);
+		mFLUIDManager.dispatchIMEInput(view, msg, text, str, bundle);
+    }
+
+    void handleNotifyRemoteCrash(NotifyData notifyData) {
+        if (mActivities.get(notifyData.mToken) == null)
+			return;
+		Activity activity = getActivity(notifyData.mToken);
+		if (DUI_DEBUG) {
+			Log.d(DUI_TAG, "handleNotifyRemoteCrash()"
+					+ ", activity = " + activity);
+		}
+		mFLUIDManager.clear();
+		mFLUIDManager.serializeUi(activity, mFLUIDManager.mTargetViews);
+    }
+
+    void handleNotifyNetworkFault(NotifyData notifyData) {
+        if (mActivities.get(notifyData.mToken) == null)
+			return;
+		Activity activity = getActivity(notifyData.mToken);
+		if (DUI_DEBUG) {
+			Log.d(DUI_TAG, "handleNotifyNetworkFault()"
+					+ ", activity = " + activity);
+		}
+		mFLUIDManager.clear();
+		for (View view : mFLUIDManager.mTargetViews)
+			view.invalidate();
+    }
+
+    void handleGetCache(CacheData cacheData) {
+		int objectId = cacheData.mObjectId;
+		String methodName = cacheData.mMethodName;
+		String methodSig = cacheData.mMethodSig;
+		Parcel reply = cacheData.mReply;
+		reply.writeNoException();
+		mFLUIDManager.getCache(objectId, methodName, methodSig, reply);
+		if (reply != null) {
+			synchronized (reply) {
+				mAppThread.mNotified = true;
+				reply.notify();
+			}
+		}
+    }
+	/* mobiledui: end */
+
     /** @hide */
     public static final String TAG = "ActivityThread";
     private static final android.graphics.Bitmap.Config THUMBNAIL_FORMAT = Bitmap.Config.RGB_565;
@@ -688,6 +925,219 @@ public final class ActivityThread {
     }
 
     private class ApplicationThread extends IApplicationThread.Stub {
+
+		/* mobiledui: start */
+		private static final String DUI_TAG = "MOBILEDUI(ApplicationThread)";
+		private static final boolean DUI_DEBUG = false;
+		private static final int RESTORE_UI_TRANSACTION = 63;
+		private static final int EXECUTE_RPC_TRANSACTION = 64;
+		private static final int DISPATCH_INPUT_TRANSACTION = 65;
+		private static final int DISPATCH_IME_INPUT_TRANSACTION = 66;
+		private static final int STORE_CACHE_TRANSACTION = 67;
+		private static final int NOTIFY_REMOTE_CRASH_TRANSACTION = 68;
+		private static final int NOTIFY_NETWORK_FAULT_TRANSACTION = 69;
+		private static final int GET_CACHE_TRANSACTION = 70;
+		public boolean mNotified = false;
+		public FLUIDManager mFLUIDManager;
+
+		@Override
+		public boolean onTransact(int code, Parcel data, Parcel reply, int flags) 
+				throws RemoteException {
+			switch (code) {
+				case RESTORE_UI_TRANSACTION: {
+					data.enforceInterface("android.fluid.IFLUIDService");
+					String packageName = data.readString();
+					byte[] viewData = data.readFromAshmem();
+					String[] classNames = data.createStringArray();
+					IBinder appToken = data.readStrongBinder();
+					scheduleRestoreUi(appToken, packageName, viewData, classNames);
+					return true;
+				}
+
+				case EXECUTE_RPC_TRANSACTION: {
+					data.enforceInterface("android.fluid.IFLUIDService");
+					int id = data.readInt();
+					String methodName = data.readString();
+					String methodSig = data.readString();
+					String[] types = data.createStringArray();
+					byte[] args = data.readFromAshmem();
+					IBinder appToken = data.readStrongBinder();
+					if ((flags & IBinder.FLAG_ONEWAY) != 0)
+						scheduleExecuteRpc(appToken, id, methodName, methodSig, types, args, null);
+					else {
+						scheduleExecuteRpc(appToken, id, methodName, methodSig, types, args, reply);
+						try {
+							synchronized (reply) {
+								while (!mNotified)
+									reply.wait();
+								mNotified = false;
+							}
+						} catch (Exception e) { e.printStackTrace(); }
+					}
+					return true;
+				}
+
+				case DISPATCH_INPUT_TRANSACTION: {
+					data.enforceInterface("android.fluid.IFLUIDService");
+					int id = data.readInt();
+					InputEvent event = InputEvent.CREATOR.createFromParcel(data);
+					event.mIsFromHost = data.readBoolean();
+					event.mScale = data.readFloat();
+					boolean isMotionEvent = data.readBoolean();
+					IBinder appToken = data.readStrongBinder();
+					scheduleDispatchInput(appToken, id, event, isMotionEvent);
+					return true;
+				}
+
+				case DISPATCH_IME_INPUT_TRANSACTION: {
+					data.enforceInterface("android.fluid.IFLUIDService");
+					int id = data.readInt();
+					Message msg = Message.CREATOR.createFromParcel(data);
+					CharSequence text = null;
+					if (data.readBoolean())
+						text = TextUtils.CHAR_SEQUENCE_CREATOR.createFromParcel(data);
+					String str = data.readString();
+					Bundle bundle = null;
+					if (data.readBoolean())
+						bundle = Bundle.CREATOR.createFromParcel(data);
+					IBinder appToken = data.readStrongBinder();
+					scheduleDispatchIMEInput(appToken, id, msg, text, str, bundle);
+					return true;
+				}
+
+				case STORE_CACHE_TRANSACTION: {
+					data.enforceInterface("android.fluid.IFLUIDService");
+					int objectId = data.readInt();
+					byte[] cacheData = data.readFromAshmem();
+					scheduleStoreCache(objectId, cacheData);
+					return true;
+				}
+
+				case NOTIFY_REMOTE_CRASH_TRANSACTION: {
+					data.enforceInterface("android.fluid.IFLUIDService");
+					IBinder appToken = data.readStrongBinder();
+					scheduleNotifyRemoteCrash(appToken);
+					return true;
+				}
+
+				case NOTIFY_NETWORK_FAULT_TRANSACTION: {
+					data.enforceInterface("android.fluid.IFLUIDService");
+					IBinder appToken = data.readStrongBinder();
+					scheduleNotifyNetworkFault(appToken);
+					return true;
+				}
+
+				case GET_CACHE_TRANSACTION: {
+					data.enforceInterface("android.fluid.IFLUIDService");
+					int objectId = data.readInt();
+					String methodName = data.readString();
+					String methodSig = data.readString();
+					scheduleGetCache(objectId, methodName, methodSig, reply);
+					try {
+						synchronized (reply) {
+							while (!mNotified)
+								reply.wait();
+							mNotified = false;
+						}
+					} catch (Exception e) { e.printStackTrace(); }
+					return true;
+				}
+			}
+			return super.onTransact(code, data, reply, flags);
+		}
+
+		public void scheduleRestoreUi(IBinder appToken, 
+				String packageName, byte[] viewData, String[] classNames) {
+			if (DUI_DEBUG) {
+				Log.d(DUI_TAG, "scheduleRestoreUi()" 
+					+ ", appToken = " + appToken
+					+ ", packageName = " + packageName
+					+ ", viewData = " + viewData
+					+ ", classNames = " + classNames);
+			}
+            sendMessage(H.RESTORE_UI, new UiData(appToken, packageName, viewData, classNames));
+		}
+
+		public void scheduleExecuteRpc(IBinder appToken, 
+				int id, String methodName, String methodSig, String[] types, byte[] args, 
+				Parcel reply) {
+			if (DUI_DEBUG) {
+				Log.d(DUI_TAG, "scheduleExecuteRpc()" 
+					+ ", appToken = " + appToken
+					+ ", id = " + id
+					+ ", methodName = " + methodName
+					+ ", methodSig = " + methodSig
+					+ ", types = " + types
+					+ ", args = " + args
+					+ ", reply = " + reply);
+			}
+            sendMessage(H.EXECUTE_RPC, new RpcData(appToken, id, methodName, methodSig, 
+						types, args, reply));
+		}
+
+		public void scheduleDispatchInput(IBinder appToken, 
+				int id, InputEvent event, boolean isMotionEvent) {
+			if (DUI_DEBUG) {
+				Log.d(DUI_TAG, "scheduleDispatchInput()" 
+					+ ", appToken = " + appToken
+					+ ", id = " + id
+					+ ", event = " + event
+					+ ", isMotionEvent = " + isMotionEvent);
+			}
+            sendMessage(H.DISPATCH_INPUT, new InputData(appToken, id, event, isMotionEvent));
+		}
+		
+		public void scheduleDispatchIMEInput(IBinder appToken, 
+				int id, Message msg, CharSequence text, String str, Bundle bundle) {
+			if (DUI_DEBUG) {
+				Log.d(DUI_TAG, "scheduleDispatchIMEInput()" 
+					+ ", appToken = " + appToken
+					+ ", id = " + id
+					+ ", msg = " + msg
+					+ ", text = " + text
+					+ ", str = " + str
+					+ ", bundle = " + bundle);
+			}
+            sendMessage(H.DISPATCH_IME_INPUT, new IMEInputData(appToken, id, msg, text, str, bundle));
+		}
+
+		public void scheduleStoreCache(int objectId, byte[] cacheData) {
+			if (DUI_DEBUG) {
+				Log.d(DUI_TAG, "scheduleStoreCache()" 
+					+ ", objectId = " + objectId
+					+ ", cacheData = " + cacheData);
+			}
+			mFLUIDManager.storeCache(objectId, cacheData);
+		}
+
+		public void scheduleNotifyRemoteCrash(IBinder appToken) {
+			if (DUI_DEBUG) {
+				Log.d(DUI_TAG, "scheduleNotifyRemoteCrash()" 
+					+ ", appToken = " + appToken);
+			}
+            sendMessage(H.NOTIFY_REMOTE_CRASH, new NotifyData(appToken));
+		}
+
+		public void scheduleNotifyNetworkFault(IBinder appToken) {
+			if (DUI_DEBUG) {
+				Log.d(DUI_TAG, "scheduleNotifyNetworkFault()" 
+					+ ", appToken = " + appToken);
+			}
+            sendMessage(H.NOTIFY_NETWORK_FAULT, new NotifyData(appToken));
+		}
+
+		public void scheduleGetCache(int objectId, String methodName, String methodSig, Parcel reply) {
+			if (DUI_DEBUG) {
+				Log.d(DUI_TAG, "scheduleGetCache()" 
+					+ ", objectId = " + objectId
+					+ ", methodName = " + methodName
+					+ ", methodSig = " + methodSig
+					+ ", reply = " + reply);
+			}
+            sendMessage(H.GET_CACHE, new CacheData(objectId, methodName, methodSig, reply));
+		}
+		/* mobiledui: end */
+
         private static final String DB_INFO_FORMAT = "  %8s %8s %14s %14s  %s";
 
         private int mLastProcessState = -1;
@@ -1516,6 +1966,15 @@ public final class ActivityThread {
         public static final int ATTACH_AGENT = 155;
         public static final int APPLICATION_INFO_CHANGED = 156;
         public static final int ACTIVITY_MOVED_TO_DISPLAY = 157;
+		/* mobiledui: start */
+        public static final int RESTORE_UI = 158;
+        public static final int EXECUTE_RPC = 159;
+        public static final int DISPATCH_INPUT = 160;
+        public static final int DISPATCH_IME_INPUT = 161;
+        public static final int NOTIFY_REMOTE_CRASH = 162;
+        public static final int NOTIFY_NETWORK_FAULT = 163;
+        public static final int GET_CACHE = 164;
+		/* mobiledui: end */
 
         String codeToString(int code) {
             if (DEBUG_MESSAGES) {
@@ -1573,6 +2032,15 @@ public final class ActivityThread {
                     case LOCAL_VOICE_INTERACTION_STARTED: return "LOCAL_VOICE_INTERACTION_STARTED";
                     case ATTACH_AGENT: return "ATTACH_AGENT";
                     case APPLICATION_INFO_CHANGED: return "APPLICATION_INFO_CHANGED";
+					/* mobiledui: start */
+					case RESTORE_UI: return "RESTORE_UI";
+					case EXECUTE_RPC: return "EXECUTE_RPC";
+					case DISPATCH_INPUT: return "DISPATCH_INPUT";
+					case DISPATCH_IME_INPUT: return "DISPATCH_IME_INPUT";
+					case NOTIFY_REMOTE_CRASH: return "NOTIFY_REMOTE_CRASH";
+					case NOTIFY_NETWORK_FAULT: return "NOTIFY_NETWORK_FAULT";
+					case GET_CACHE: return "GET_CACHE";
+					/* mobiledui: end */
                 }
             }
             return Integer.toString(code);
@@ -1843,6 +2311,36 @@ public final class ActivityThread {
                         mUpdatingSystemConfig = false;
                     }
                     break;
+				/* mobiledui: start */
+				case RESTORE_UI: {
+					handleRestoreUi((UiData) msg.obj);
+					break;
+				}
+				case EXECUTE_RPC: {
+					handleExecuteRpc((RpcData) msg.obj);
+					break;
+				}
+				case DISPATCH_INPUT: {
+					handleDispatchInput((InputData) msg.obj);
+					break;
+				}
+				case DISPATCH_IME_INPUT: {
+					handleDispatchIMEInput((IMEInputData) msg.obj);
+					break;
+				}
+				case NOTIFY_REMOTE_CRASH: {
+					handleNotifyRemoteCrash((NotifyData) msg.obj);
+					break;
+				}
+				case NOTIFY_NETWORK_FAULT: {
+					handleNotifyNetworkFault((NotifyData) msg.obj);
+					break;
+				}
+				case GET_CACHE: {
+					handleGetCache((CacheData) msg.obj);
+					break;
+				}
+				/* mobiledui: end */
             }
             Object obj = msg.obj;
             if (obj instanceof SomeArgs) {
@@ -2117,6 +2615,10 @@ public final class ActivityThread {
 
     ActivityThread() {
         mResourcesManager = ResourcesManager.getInstance();
+		/* mobiledui: start */
+		mFLUIDManager = FLUIDManager.getInstance();
+		Class.setFLUIDManagerObj(mFLUIDManager);
+		/* mobiledui: end */
     }
 
     public ApplicationThread getApplicationThread()
@@ -2769,6 +3271,17 @@ public final class ActivityThread {
             r.paused = true;
 
             mActivities.put(r.token, r);
+			/* mobiledui: start */
+			mFLUIDManager = FLUIDManager.getInstance();
+			if (DUI_DEBUG) 
+				Log.d(DUI_TAG, "performLaunchActivity(), mFLUIDManager = " + mFLUIDManager);
+			if (mFLUIDManager != null) {
+				Class.setFLUIDManagerObj(mFLUIDManager);
+				mAppThread.mFLUIDManager = mFLUIDManager;
+				if (r.packageInfo.getPackageName().equals("com.fluid.wrapperapp"))
+					mFLUIDManager.onActivityLaunched(r.token);
+			}
+			/* mobiledui: end */
 
         } catch (SuperNotCalledException e) {
             throw e;
@@ -5772,6 +6285,14 @@ public final class ActivityThread {
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
+
+		/* mobiledui: start */
+		if (mFLUIDManager != null) {
+			String packageName = data.info.getPackageName();
+			if (packageName.equals("com.fluid.wrapperapp"))
+				mFLUIDManager.registerApks(appContext);
+		}
+		/* mobiledui: end */
     }
 
     /*package*/ final void finishInstrumentation(int resultCode, Bundle results) {

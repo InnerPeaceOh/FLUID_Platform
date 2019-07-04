@@ -406,6 +406,13 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         final Window.Callback cb = mWindow.getCallback();
+		/* mobiledui: start */
+		Context context = mWindow.getContext();
+		if (context instanceof android.app.Activity) {
+			boolean res = ((android.app.Activity)context).triggerUiSelection(ev);
+			if (res) return true;
+		}
+		/* mobiledui: end */
         return cb != null && !mWindow.isDestroyed() && mFeatureId < 0
                 ? cb.dispatchTouchEvent(ev) : super.dispatchTouchEvent(ev);
     }

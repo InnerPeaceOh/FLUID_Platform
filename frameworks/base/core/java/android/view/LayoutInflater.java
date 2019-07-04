@@ -42,6 +42,29 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
 
+/* mobiledui: start */
+import libcore.reflect.Types;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.DataOutputStream;
+import java.io.DataInputStream;
+import java.util.ArrayList;
+import java.util.Stack;
+import dalvik.system.PathClassLoader;
+import dalvik.system.DexClassLoader;
+import android.os.Process;
+import android.os.Bundle;
+import android.fluid.FLUIDManager;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.io.Output;
+import android.fluid.kryo.io.Input;
+import android.view.InputEvent;
+import android.os.IBinder;
+/* mobiledui: end */
+
+
 /**
  * Instantiates a layout XML file into its corresponding {@link android.view.View}
  * objects. It is never used directly. Instead, use
@@ -65,6 +88,33 @@ import java.util.HashMap;
  */
 @SystemService(Context.LAYOUT_INFLATER_SERVICE)
 public abstract class LayoutInflater {
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(LayoutInflater)";
+    private static final boolean DUI_DEBUG = false;
+	private static final String TAG_MOBILEDUI_SPLIT = "MOBILEDUI_SPLIT";
+	private FLUIDManager mFLUIDManager;
+	private Kryo mKryo;
+	private ArrayList<View> mTargetViews;
+	private int mNextRemoteId = 0;
+	private DexClassLoader mDexLoader;
+    private IBinder mAppThread;
+    private IBinder mToken;
+
+	boolean mCollectUi = false;
+
+	/** @hide */
+	public void setFLUIDManager(FLUIDManager dm) {
+		mFLUIDManager = dm;
+		if (dm != null)
+			mKryo = dm.getKryo();
+	}
+
+	/** @hide */ 
+	public void setAppBinders(IBinder appThread, IBinder token) {
+		mAppThread = appThread;
+		mToken = token;
+	}
+	/* mobiledui: end */
 
     private static final String TAG = LayoutInflater.class.getSimpleName();
     private static final boolean DEBUG = false;
@@ -547,6 +597,24 @@ public abstract class LayoutInflater {
 
                 Trace.traceEnd(Trace.TRACE_TAG_VIEW);
             }
+			if (mTargetViews != null) {
+				for (View view : mTargetViews) {
+					View parent = (View)view.getParent();
+					view.mFLUIDManager = mFLUIDManager;
+					view.mKryo = mKryo;
+					view.mRemoteId = mNextRemoteId++;
+					view.mParentRemoteId = (parent != null)? parent.mRemoteId : -1;
+					Log.d(DUI_TAG, "inflate()"
+							+ ", id = " + view.mRemoteId
+							+ ", parent id = " + view.mParentRemoteId
+							+ ", view = " + view);
+				}
+
+				if (mFLUIDManager != null)
+					mFLUIDManager.serializeUi(mContext, mTargetViews);
+				mTargetViews = null;
+			}
+			/* mobiledui: end */
 
             return result;
         }
@@ -603,9 +671,25 @@ public abstract class LayoutInflater {
 
             if (constructor == null) {
                 // Class not found in the cache, see if it's real, and try to add it
-                clazz = mContext.getClassLoader().loadClass(
-                        prefix != null ? (prefix + name) : name).asSubclass(View.class);
-
+//                clazz = mContext.getClassLoader().loadClass(
+//                        prefix != null ? (prefix + name) : name).asSubclass(View.class);
+				/* mobiledui: start */
+				try {
+					clazz = mContext.getClassLoader().loadClass(
+							prefix != null ? (prefix + name) : name).asSubclass(View.class);
+				} catch (ClassNotFoundException e) {
+					if (mFLUIDManager != null && mFLUIDManager.mDexLoader != null) {
+						try {
+							clazz = mFLUIDManager.mDexLoader.loadClass(
+									prefix != null ? (prefix + name) : name).asSubclass(View.class);
+						} catch (ClassNotFoundException ie) {
+							throw ie;
+						}
+					}
+					else
+						throw e;
+				}
+				/* mobiledui: end */
                 if (mFilter != null && clazz != null) {
                     boolean allowed = mFilter.onLoadClass(clazz);
                     if (!allowed) {
@@ -837,6 +921,9 @@ public abstract class LayoutInflater {
         final int depth = parser.getDepth();
         int type;
         boolean pendingRequestFocus = false;
+		/* mobiledui: start */
+		if (DUI_DEBUG) Log.d(DUI_TAG, "rInflate() start, parent = " + parent + ", depth = " + depth);
+		/* mobiledui: end */
 
         while (((type = parser.next()) != XmlPullParser.END_TAG ||
                 parser.getDepth() > depth) && type != XmlPullParser.END_DOCUMENT) {
@@ -846,6 +933,9 @@ public abstract class LayoutInflater {
             }
 
             final String name = parser.getName();
+			/* mobiledui: start */
+			if (DUI_DEBUG) Log.d(DUI_TAG, "rInflate() bp 1, name = " + name);
+			/* mobiledui: end */
 
             if (TAG_REQUEST_FOCUS.equals(name)) {
                 pendingRequestFocus = true;
@@ -859,10 +949,30 @@ public abstract class LayoutInflater {
                 parseInclude(parser, context, parent, attrs);
             } else if (TAG_MERGE.equals(name)) {
                 throw new InflateException("<merge /> must be the root element");
+			/* mobiledui: start */
+			} else if (TAG_MOBILEDUI_SPLIT.equals(name)) {
+				if (mTargetViews == null && mFLUIDManager != null) {
+					mTargetViews =  new ArrayList<View>();
+					mNextRemoteId = 0;
+					mCollectUi = true;
+				}
+				else if (mFLUIDManager != null) {
+					mFLUIDManager.registerAppBinders(mAppThread, mToken);
+					mCollectUi = false;
+				}
+			/* mobiledui: end */
             } else {
                 final View view = createViewFromTag(parent, name, context, attrs);
                 final ViewGroup viewGroup = (ViewGroup) parent;
                 final ViewGroup.LayoutParams params = viewGroup.generateLayoutParams(attrs);
+				/* mobiledui: start */
+				if (mCollectUi) {
+					if (mTargetViews.size() == 0 && !(view instanceof ViewGroup)) {
+						mTargetViews.add(parent);
+					}
+					mTargetViews.add(view);
+				}
+				/* mobiledui: end */
                 rInflateChildren(parser, view, attrs, true);
                 viewGroup.addView(view, params);
             }
@@ -875,6 +985,9 @@ public abstract class LayoutInflater {
         if (finishInflate) {
             parent.onFinishInflate();
         }
+		/* mobiledui: start */
+		if (DUI_DEBUG) Log.d(DUI_TAG, "rInflate() end, parent = " + parent + ", depth = " + depth);
+		/* mobiledui: end */
     }
 
     /**
@@ -991,7 +1104,13 @@ public abstract class LayoutInflater {
                         }
                         view.setLayoutParams(params);
 
-                        // Inflate all children.
+						/* mobiledui: start */
+						if (mCollectUi) {
+							mTargetViews.add(view);
+						}
+						/* mobiledui: end */
+
+						// Inflate all children.
                         rInflateChildren(childParser, view, childAttrs, true);
 
                         if (id != View.NO_ID) {

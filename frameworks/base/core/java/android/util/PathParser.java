@@ -63,6 +63,26 @@ public class PathParser {
      * generate commands to manipulate a Path.
      */
     public static class PathData {
+		/* mobiledui: start */
+		private static final String DUI_TAG = "MOBILEDUI(PathData)";
+		private static final boolean DUI_DEBUG = false;
+		/** @hide */
+		byte[] mNativeData;
+
+		/** @hide */
+		public void flattenForFLUID() {
+			Log.d(DUI_TAG, "flattenForFLUID(), mNativePathData = " + mNativePathData);
+			mNativeData = nativeFLUIDFlatten(mNativePathData);
+		}
+		
+		/** @hide */
+		public void unflattenForFLUID() {
+			Log.d(DUI_TAG, "unflattenForFLUID(), mNativePathData = " + mNativePathData);
+            mNativePathData = nCreateEmptyPathData();
+			nativeFLUIDUnflatten(mNativePathData, mNativeData);
+		}
+		/* mobiledui: end */
+
         long mNativePathData = 0;
         public PathData() {
             mNativePathData = nCreateEmptyPathData();
@@ -117,6 +137,11 @@ public class PathParser {
         return nInterpolatePathData(outData.mNativePathData, fromData.mNativePathData,
                 toData.mNativePathData, fraction);
     }
+
+	/* mobiledui: start */
+	private static native byte[] nativeFLUIDFlatten(long handle);
+	private static native boolean nativeFLUIDUnflatten(long handle, byte[] buffer);
+	/* mobiledui: end */
 
     // Native functions are defined below.
     private static native void nParseStringForPath(long pathPtr, String pathString,

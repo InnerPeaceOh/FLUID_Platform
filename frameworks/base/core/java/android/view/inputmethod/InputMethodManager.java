@@ -71,6 +71,10 @@ import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+/* mobiledui: start */
+import android.fluid.FLUIDManager;
+/* mobiledui: end */
+
 /**
  * Central system API to the overall input method framework (IMF) architecture,
  * which arbitrates interaction between applications and the current input method.
@@ -1003,6 +1007,14 @@ public final class InputMethodManager {
      * {@link #RESULT_HIDDEN}.
      */
     public boolean showSoftInput(View view, int flags, ResultReceiver resultReceiver) {
+		/* mobiledui: start */
+		if (view.mFLUIDManager != null 
+				&& FLUIDManager.isMigrated(view) && FLUIDManager.isInRemote(view)) {
+			closeCurrentInput();
+			view.invalidate();
+			return true;
+		}
+		/* mobiledui: end */
         checkFocus();
         synchronized (mH) {
             if (mServedView != view && (mServedView == null
@@ -1236,6 +1248,14 @@ public final class InputMethodManager {
         tba.fieldId = view.getId();
         InputConnection ic = view.onCreateInputConnection(tba);
         if (DEBUG) Log.v(TAG, "Starting input: tba=" + tba + " ic=" + ic);
+		/* mobiledui: start */
+		if (view.mFLUIDManager != null 
+				&& FLUIDManager.isMigrated(view) && FLUIDManager.isInRemote(view)) {
+			closeCurrentInput();
+			view.invalidate();
+			return true;
+		}
+		/* mobiledui: end */
 
         synchronized (mH) {
             // Now that we are locked again, validate that our state hasn't

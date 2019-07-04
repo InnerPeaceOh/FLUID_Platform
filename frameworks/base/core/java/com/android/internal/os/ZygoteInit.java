@@ -69,6 +69,15 @@ import java.io.InputStreamReader;
 import java.security.Security;
 import java.security.Provider;
 
+/* mobiledui: start */
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Constructor;
+import dalvik.system.DexClassLoader;
+import libcore.reflect.Types;
+import android.view.View;
+/* mobiledui: end */
+
 /**
  * Startup class for the zygote process.
  *
@@ -84,6 +93,9 @@ import java.security.Provider;
 public class ZygoteInit {
     private static final String TAG = "Zygote";
 
+	/* mobiledui: start */
+	private static final int RPC_INSTALLED = 0x00100000;
+	/* mobiledui: end */
     private static final String PROPERTY_DISABLE_OPENGL_PRELOADING = "ro.zygote.disable_gl_preload";
     private static final String PROPERTY_GFX_DRIVER = "ro.gfx.driver.0";
     private static final String PROPERTY_RUNNING_IN_CONTAINER = "ro.boot.container";
@@ -789,6 +801,10 @@ public class ZygoteInit {
                 }
             }
 
+			/* mobiledui: start */
+			installRpcGadget();
+			/* mobiledui: end */
+
             Log.i(TAG, "Accepting command socket connections");
 
             // The select loop returns early in the child process after a fork and
@@ -862,4 +878,86 @@ public class ZygoteInit {
     }
 
     private static final native void nativeZygoteInit();
+
+	/* mobiledui: start */
+    public static void installRpcGadget() {
+        final VMRuntime runtime = VMRuntime.getRuntime();
+
+        InputStream is;
+        try {
+            is = new FileInputStream(PRELOADED_CLASSES);
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, "Couldn't find " + PRELOADED_CLASSES + ".");
+            return;
+        }
+        float defaultUtilization = runtime.getTargetHeapUtilization();
+        runtime.setTargetHeapUtilization(0.8f);
+			
+		Class.initRpcGadget();
+
+        try {
+            BufferedReader br
+                = new BufferedReader(new InputStreamReader(is), 256);
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                // Skip comments and blank lines.
+                line = line.trim();
+                if (line.startsWith("#") || line.equals(""))
+                    continue;
+
+				try {
+					Class clazz = Class.forName(line, true, null);
+					if (line.equals("java.lang.Object") || line.equals("android.os.LocaleList")) 
+						continue;
+					while (clazz != null && clazz != Object.class) {
+						if ((clazz.zFLUIDFlags & RPC_INSTALLED) == 0) {
+							Method[] methods = clazz.getDeclaredMethods();
+							for (Method method : methods) {
+								if (Modifier.isStatic(method.getModifiers()) || Modifier.isPrivate(method.getModifiers()))
+									continue;
+								Class.setRpcGadget(clazz, method.getName(), getSignature(method));
+							}
+							clazz.zFLUIDFlags |= RPC_INSTALLED;
+						}
+						clazz = clazz.getSuperclass();
+					}
+
+				} catch (ClassNotFoundException e) {
+					Log.w(TAG, "Class not found for preloading: " + line);
+				} catch (UnsatisfiedLinkError e) {
+                    Log.w(TAG, "Problem preloading " + line + ": " + e);
+                } catch (Throwable t) {
+                    Log.e(TAG, "Error preloading " + line + ".", t);
+                    if (t instanceof Error) {
+                        throw (Error) t;
+                    }
+                    if (t instanceof RuntimeException) {
+                        throw (RuntimeException) t;
+                    }
+                    throw new RuntimeException(t);
+                }
+			}
+        } catch (IOException e) {
+            Log.e(TAG, "Error reading " + PRELOADED_CLASSES + ".", e);
+        } finally {
+            IoUtils.closeQuietly(is);
+            runtime.setTargetHeapUtilization(defaultUtilization);
+        }
+    }
+
+    private static String getSignature(Method method) {
+        StringBuilder result = new StringBuilder();
+
+        result.append('(');
+        Class<?>[] parameterTypes = method.getParameterTypes();
+        for (Class<?> parameterType : parameterTypes) {
+            result.append(Types.getSignature(parameterType));
+        }
+        result.append(')');
+        result.append(Types.getSignature(method.getReturnType()));
+
+        return result.toString();
+    }
+	/* mobiledui: end */
 }

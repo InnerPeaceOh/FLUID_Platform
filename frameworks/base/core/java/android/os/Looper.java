@@ -161,7 +161,11 @@ public final class Looper {
             final long start = (slowDispatchThresholdMs == 0) ? 0 : SystemClock.uptimeMillis();
             final long end;
             try {
-                msg.target.dispatchMessage(msg);
+                //msg.target.dispatchMessage(msg);
+				/* mobiledui: start */
+				if (!msg.target.isDisableForFLUID())
+					msg.target.dispatchMessage(msg);
+				/* mobiledui: end */
                 end = (slowDispatchThresholdMs == 0) ? 0 : SystemClock.uptimeMillis();
             } finally {
                 if (traceTag != 0) {

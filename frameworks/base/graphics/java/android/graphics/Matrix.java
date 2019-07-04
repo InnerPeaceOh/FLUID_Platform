@@ -23,10 +23,43 @@ import libcore.util.NativeAllocationRegistry;
 
 import java.io.PrintWriter;
 
+/* mobiledui: start */
+import android.util.Log;
+/* mobiledui: end */
+
 /**
  * The Matrix class holds a 3x3 matrix for transforming coordinates.
  */
 public class Matrix {
+
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(Matrix)";
+    private static final boolean DUI_DEBUG = false;
+
+	/** @hide */
+	byte[] mNativeData;
+
+	/** @hide */
+	public void flattenForFLUID() {
+		if (DUI_DEBUG)
+			Log.d(DUI_TAG, "flattenForFLUID(), native_instance = " + native_instance);
+		mNativeData = nativeFLUIDFlatten(native_instance);
+		if (mNativeData == null)
+			Log.d(DUI_TAG, "flattenForFLUID() failed. mNativeData is null");
+	}
+
+	/** @hide */
+	public void unflattenForFLUID() {
+		if (DUI_DEBUG)
+			Log.d(DUI_TAG, "unflattenForFLUID(), native_instance = " + native_instance);
+		boolean res = nativeFLUIDUnflatten(native_instance, mNativeData);
+		if (!res) 
+			Log.d(DUI_TAG, "unflattenForFLUID() failed.");
+	}
+
+    private static native byte[] nativeFLUIDFlatten(long handle);
+    private static native boolean nativeFLUIDUnflatten(long handle, byte[] buffer);
+	/* mobiledui: end */
 
     public static final int MSCALE_X = 0;   //!< use with getValues/setValues
     public static final int MSKEW_X  = 1;   //!< use with getValues/setValues
@@ -231,7 +264,10 @@ public class Matrix {
     /**
      * @hide
      */
-    public final long native_instance;
+    //public final long native_instance;
+	/* mobiledui: start */
+    public transient final long native_instance;
+	/* mobiledui: end */
 
     /**
      * Create an identity matrix

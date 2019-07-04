@@ -614,6 +614,10 @@ LOCAL_STATIC_JAVA_LIBRARIES :=                          \
     android.hardware.vibrator-V1.1-java-constants        \
     android.hardware.wifi-V1.0-java-constants            \
 
+# mobiledui: start
+LOCAL_STATIC_JAVA_LIBRARIES += reflectasm-prebuilt
+# mobiledui: end
+
 include hardware/interfaces/cas/1.0/CasHal.mk
 
 # Loaded with System.loadLibrary by android.view.textclassifier

@@ -41,11 +41,139 @@ import java.util.Locale;
 
 import libcore.util.NativeAllocationRegistry;
 
+/* mobiledui: start */
+import android.util.Log;
+import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.DataOutputStream;
+import java.io.DataInputStream;
+/* mobiledui: end */
+
 /**
  * The Paint class holds the style and color information about how to draw
  * geometries, text and bitmaps.
  */
 public class Paint {
+
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(Paint)";
+    private static final boolean DUI_DEBUG = false;
+
+	/** @hide */
+	byte[] mNativeData;
+
+	/** @hide */
+	public void flattenForFLUID() {
+		// TODO: I'll handle server class relevant to Paint
+		if (DUI_DEBUG) {
+			Log.d(DUI_TAG, "flattenForFLUID()"
+					 + ", mColorFilter = " + mColorFilter
+					 + ", mMaskFilter = " + mMaskFilter
+					 + ", mPathEffect = " + mPathEffect
+					 + ", mShader = " + mShader
+					 + ", mTypeface = " + mTypeface
+					 + ", mXfermode = " + mXfermode);
+			if (mTypeface != null) {
+				Log.d(DUI_TAG, "typeface name = " + mTypeface.mFontName 
+						+ ", isSystemFont = " + mTypeface.mIsSystemFont
+						+ ", howCreate = " + mTypeface.howCreate);
+			}
+		}
+		try {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			DataOutputStream dos = new DataOutputStream(baos);
+			dos.writeInt(getFlags());
+			dos.writeInt(getHinting());
+			dos.writeInt(getStyle().nativeInt);
+			dos.writeInt(getColor());
+			dos.writeFloat(getStrokeWidth());
+			dos.writeFloat(getStrokeMiter());
+			dos.writeInt(getStrokeCap().nativeInt);
+			dos.writeInt(getStrokeJoin().nativeInt);
+			dos.writeInt(getTextAlign().nativeInt);
+			dos.writeBoolean(isElegantTextHeight());
+			dos.writeFloat(getTextSize());
+			dos.writeFloat(getTextScaleX());
+			dos.writeFloat(getTextSkewX());
+			dos.writeFloat(getLetterSpacing());
+			dos.writeFloat(getWordSpacing());
+			dos.writeInt(getHyphenEdit());
+			dos.writeBoolean(hasShadowLayer());
+			dos.writeBoolean(mShader != null 
+					&& mShader.getNativeInstance() == mNativeShader);
+			dos.writeBoolean(mColorFilter != null 
+					&& mColorFilter.getNativeInstance() == mNativeColorFilter);
+			dos.writeBoolean(mTypeface != null);
+			if (mTypeface != null) {
+				dos.writeBoolean(mTypeface.mIsSystemFont);
+				dos.writeUTF(mTypeface.mFontName);
+			}
+
+			mNativeData = baos.toByteArray();
+			dos.close();
+			baos.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	// You should invoke unflattenForFLUID() after deserializing Paint's member variables
+	/** @hide */
+	public void unflattenForFLUID() {
+		if (DUI_DEBUG) {
+			Log.d(DUI_TAG, "unflattenForFLUID(), mNativeData.length = " + mNativeData.length);
+		}
+		try {
+			mNativePaint = nInit();
+			NoImagePreloadHolder.sRegistry.registerNativeAllocation(this, mNativePaint);
+			ByteArrayInputStream bais = new ByteArrayInputStream(mNativeData);
+			DataInputStream dis = new DataInputStream(bais);
+			setFlags(dis.readInt());
+			setHinting(dis.readInt());
+			setStyle(sStyleArray[dis.readInt()]);
+			setColor(dis.readInt());
+			setStrokeWidth(dis.readFloat());
+			setStrokeMiter(dis.readFloat());
+			setStrokeCap(sCapArray[dis.readInt()]);
+			setStrokeJoin(sJoinArray[dis.readInt()]);
+			setTextAlign(sAlignArray[dis.readInt()]);
+			setElegantTextHeight(dis.readBoolean());
+			setTextSize(dis.readFloat());
+			setTextScaleX(dis.readFloat());
+			setTextSkewX(dis.readFloat());
+			setLetterSpacing(dis.readFloat());
+			setWordSpacing(dis.readFloat());
+			setHyphenEdit(dis.readInt());
+			if (dis.readBoolean())
+				setShadowLayer(mShadowLayerRadius, mShadowLayerDx, mShadowLayerDy, mShadowLayerColor);
+			if (dis.readBoolean()) {
+				mNativeShader = mShader.getNativeInstance();
+				nSetShader(mNativePaint, mNativeShader);
+			}
+			if (dis.readBoolean()) {
+				mNativeColorFilter = mColorFilter.getNativeInstance();
+				nSetColorFilter(mNativePaint, mNativeColorFilter);
+			}
+			if (dis.readBoolean()) {
+				// TODO: Support system fonts now...
+				boolean isSystemFont = dis.readBoolean();
+				String fontName = dis.readUTF();
+				if (isSystemFont) {
+					Typeface tf = Typeface.sSystemFontMap.get(fontName);
+					setTypeface(tf);
+				}
+				else
+					setTypeface(Typeface.DEFAULT);
+			}
+
+			dis.close();
+			bais.close();
+			mNativeData = null;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	/* mobiledui: end */
 
     private long mNativePaint;
     private long mNativeShader;

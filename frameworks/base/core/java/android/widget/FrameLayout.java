@@ -72,7 +72,10 @@ public class FrameLayout extends ViewGroup {
     @ViewDebug.ExportedProperty(category = "padding")
     private int mForegroundPaddingBottom = 0;
 
-    private final ArrayList<View> mMatchParentChildren = new ArrayList<>(1);
+    //private final ArrayList<View> mMatchParentChildren = new ArrayList<>(1);
+	/* mobiledui: start */
+    transient private final ArrayList<View> mMatchParentChildren = new ArrayList<>(1);
+	/* mobiledui: end */
 
     public FrameLayout(@NonNull Context context) {
         super(context);

@@ -16,6 +16,10 @@
 
 package android.graphics;
 
+/* mobiledui: start */
+import android.util.Log;
+/* mobiledui: end */
+
 /**
  * The NinePatch class permits drawing a bitmap in nine or more sections.
  * Essentially, it allows the creation of custom graphics that will scale the
@@ -31,6 +35,21 @@ package android.graphics;
  * </p>
  */
 public class NinePatch {
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(NinePatch)";
+    private static final boolean DUI_DEBUG = false;
+
+	/** @hide */
+	public byte[] mNativeData;
+
+	/** @hide */
+	public void unflattenForFLUID() {
+		if (DUI_DEBUG)
+			Log.d(DUI_TAG, "unflattenForFLUID(), mNativeData.length = " + mNativeData.length);
+		
+        mNativeChunk = validateNinePatchChunk(mNativeData);
+	}
+	/* mobiledui: end */
     /**
      * Struct of inset information attached to a 9 patch bitmap.
      *
@@ -109,6 +128,9 @@ public class NinePatch {
      * @param srcName The name of the source for the bitmap. Might be null.
      */
     public NinePatch(Bitmap bitmap, byte[] chunk, String srcName) {
+		/* mobiledui: start */
+		mNativeData = chunk;
+		/* mobiledui: end */
         mBitmap = bitmap;
         mSrcName = srcName;
         mNativeChunk = validateNinePatchChunk(chunk);
@@ -126,6 +148,9 @@ public class NinePatch {
         // No need to validate the 9patch chunk again, it was done by
         // the instance we're copying from
         mNativeChunk = patch.mNativeChunk;
+		/* mobiledui: start */
+		mNativeData = patch.mNativeData;
+		/* mobiledui: end */
     }
 
     @Override

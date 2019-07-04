@@ -35,6 +35,9 @@ import android.view.ViewConfiguration;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.android.internal.R;
+/* mobiledui: start */
+import android.util.Log;
+/* mobiledui: end */
 
 
 /**
@@ -761,25 +764,46 @@ public abstract class AbsSeekBar extends ProgressBar {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (!mIsUserSeekable || !isEnabled()) {
-            return false;
-        }
+		/* mobiledui: start */
+		Log.d("AbsSeekBar", "onTouchEvent() start");
+		/* mobiledui: end */
+		if (!mIsUserSeekable || !isEnabled()) {
+			return false;
+		}
+		/* mobiledui: start */
+		Log.d("AbsSeekBar", "onTouchEvent() bp 1");
+		/* mobiledui: end */
 
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                if (isInScrollingContainer()) {
-                    mTouchDownX = event.getX();
-                } else {
-                    startDrag(event);
-                }
-                break;
+		switch (event.getAction()) {
+			case MotionEvent.ACTION_DOWN:
+				/* mobiledui: start */
+				Log.d("AbsSeekBar", "onTouchEvent() bp 2");
+				/* mobiledui: end */
+				if (isInScrollingContainer()) {
+					mTouchDownX = event.getX();
+				} else {
+					startDrag(event);
+				}
+				break;
 
             case MotionEvent.ACTION_MOVE:
+				/* mobiledui: start */
+				Log.d("AbsSeekBar", "onTouchEvent() bp 3, mIsDragging = " + mIsDragging);
+				/* mobiledui: end */
                 if (mIsDragging) {
                     trackTouchEvent(event);
                 } else {
                     final float x = event.getX();
-                    if (Math.abs(x - mTouchDownX) > mScaledTouchSlop) {
+                    //if (Math.abs(x - mTouchDownX) > mScaledTouchSlop) {
+					/* mobiledui: start */
+					if (mOrigWidth != 0) {
+						float transformed = mScaledTouchSlop * (getWidth() / (float)mOrigWidth);
+						if (Math.abs(x - mTouchDownX) > transformed) {
+							startDrag(event);
+						}
+					}
+					else if (Math.abs(x - mTouchDownX) > mScaledTouchSlop) {
+					/* mobiledui: end */
                         startDrag(event);
                     }
                 }
@@ -815,6 +839,9 @@ public abstract class AbsSeekBar extends ProgressBar {
     }
 
     private void startDrag(MotionEvent event) {
+		/* mobiledui: start */
+		Log.d("AbsSeekBar", "startDrag() start");
+		/* mobiledui: end */
         setPressed(true);
 
         if (mThumb != null) {
@@ -840,7 +867,7 @@ public abstract class AbsSeekBar extends ProgressBar {
         final int width = getWidth();
         final int availableWidth = width - mPaddingLeft - mPaddingRight;
 
-        final float scale;
+        float scale;
         float progress = 0.0f;
         if (isLayoutRtl() && mMirrorForRtl) {
             if (x > width - mPaddingRight) {
@@ -861,6 +888,10 @@ public abstract class AbsSeekBar extends ProgressBar {
                 progress = mTouchProgressOffset;
             }
         }
+		/* mobiledui: start */
+		if (event.mIsFromHost) 
+			scale = event.mScale;
+		/* mobiledui: end */
 
         final int range = getMax() - getMin();
         progress += scale * range;

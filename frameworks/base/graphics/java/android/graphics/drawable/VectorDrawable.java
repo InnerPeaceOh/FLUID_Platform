@@ -819,6 +819,30 @@ public class VectorDrawable extends Drawable {
     }
 
     static class VectorDrawableState extends ConstantState {
+		/* mobiledui: start */
+		private static final String DUI_TAG = "MOBILEDUI(VectorDrawableState)";
+		private static final boolean DUI_DEBUG = false;
+
+		/** @hide */
+		float mAlpha;
+
+		/** @hide */
+		public void flattenForFLUID() {
+			if (DUI_DEBUG) Log.d(DUI_TAG, "flattenForFLUID(), this = " + this);
+			mAlpha = getAlpha();
+		}
+
+		/** @hide */
+		public void unflattenForFLUID() {
+			if (DUI_DEBUG) Log.d(DUI_TAG, "unflattenForFLUID(), this = " + this);
+            createNativeTree(mRootGroup);
+            onTreeConstructionFinished();
+			setAlpha(mAlpha);
+			setViewportSize(mViewportWidth, mViewportHeight);
+			mRootGroup.restoreNativeData();
+		}
+		/* mobiledui: end */
+		
         // Variables below need to be copied (deep copy if applicable) for mutation.
         int[] mThemeAttrs;
         @Config int mChangingConfigurations;
@@ -1053,6 +1077,45 @@ public class VectorDrawable extends Drawable {
     }
 
     static class VGroup extends VObject {
+		/* mobiledui: start */
+		private static final String DUI_TAG = "MOBILEDUI(VGroup)";
+		private static final boolean DUI_DEBUG = false;
+
+		/** @hide */
+		public void flattenForFLUID() {
+			if (DUI_DEBUG) {
+				Log.d(DUI_TAG, "flattenForFLUID(), mNativePtr = " + mNativePtr
+					+ ", mChildren = " + mChildren);
+			}
+            if (mTransform == null)
+                mTransform = new float[TRANSFORM_PROPERTY_COUNT];
+            nGetGroupProperties(mNativePtr, mTransform, TRANSFORM_PROPERTY_COUNT);
+		}
+
+		/** @hide */
+		public void unflattenForFLUID() {
+			if (DUI_DEBUG) {
+			Log.d(DUI_TAG, "unflattenForFLUID(), mNativePtr = " + mNativePtr
+					+ ", mChildren = " + mChildren);
+			}
+			mNativePtr = nCreateGroup();
+		}
+
+		/** @hide */
+		public void restoreNativeData() {
+            if (mGroupName != null)
+				nSetName(mNativePtr, mGroupName);
+			nUpdateGroupProperties(mNativePtr, mTransform[ROTATION_INDEX], 
+								   mTransform[PIVOT_X_INDEX], mTransform[PIVOT_Y_INDEX],
+								   mTransform[SCALE_X_INDEX], mTransform[SCALE_Y_INDEX],
+								   mTransform[TRANSLATE_X_INDEX], mTransform[TRANSLATE_Y_INDEX]);
+			for (VObject child : mChildren) {
+				nAddChild(mNativePtr, child.getNativePtr());
+				child.restoreNativeData();
+			}
+		}
+		/* mobiledui: end */
+
         private static final int ROTATION_INDEX = 0;
         private static final int PIVOT_X_INDEX = 1;
         private static final int PIVOT_Y_INDEX = 2;
@@ -1206,7 +1269,10 @@ public class VectorDrawable extends Drawable {
         // The native object will be created in the constructor and will be destroyed in native
         // when the neither java nor native has ref to the tree. This pointer should be valid
         // throughout this VGroup Java object's life.
-        private final long mNativePtr;
+        //private final long mNativePtr;
+		/* mobiledui: start */
+        private long mNativePtr;
+		/* mobiledui: end */
         public VGroup(VGroup copy, ArrayMap<String, Object> targetsMap) {
 
             mIsStateful = copy.mIsStateful;
@@ -1557,7 +1623,39 @@ public class VectorDrawable extends Drawable {
      * Clip path, which only has name and pathData.
      */
     private static class VClipPath extends VPath {
-        private final long mNativePtr;
+		/* mobiledui: start */
+		private static final String DUI_TAG = "MOBILEDUI(VClipPath)";
+		private static final boolean DUI_DEBUG = false;
+
+		/** @hide */
+		String mPathDataString;
+
+		/** @hide */
+		public void flattenForFLUID() {
+			if (DUI_DEBUG)
+				Log.d(DUI_TAG, "flattenForFLUID(), mNativePtr = " + mNativePtr);
+		}
+
+		/** @hide */
+		public void unflattenForFLUID() {
+			if (DUI_DEBUG)
+				Log.d(DUI_TAG, "unflattenForFLUID(), mNativePtr = " + mNativePtr);
+            mNativePtr = nCreateClipPath();
+		}
+
+		/** @hide */
+		public void restoreNativeData() {
+			if (mPathName != null)
+				nSetName(mNativePtr, mPathName);
+            nSetPathString(mNativePtr, mPathDataString, mPathDataString.length());
+			setPathData(mPathData);
+		}
+		/* mobiledui: end */
+
+        //private final long mNativePtr;
+		/* mobiledui: start */
+        private long mNativePtr;
+		/* mobiledui: end */
         private static final int NATIVE_ALLOCATION_SIZE = 120;
 
         public VClipPath() {
@@ -1626,6 +1724,9 @@ public class VectorDrawable extends Drawable {
             if (pathDataString != null) {
                 mPathData = new PathParser.PathData(pathDataString);
                 nSetPathString(mNativePtr, pathDataString, pathDataString.length());
+				/* mobiledui: start */
+				mPathDataString = pathDataString;
+				/* mobiledui: end */
             }
         }
     }
@@ -1634,6 +1735,62 @@ public class VectorDrawable extends Drawable {
      * Normal path, which contains all the fill / paint information.
      */
     static class VFullPath extends VPath {
+		/* mobiledui: start */
+		private static final String DUI_TAG = "MOBILEDUI(VFullPath)";
+		private static final boolean DUI_DEBUG = false;
+
+		/** @hide */
+		public void flattenForFLUID() {
+			if (DUI_DEBUG)
+				Log.d(DUI_TAG, "flattenForFLUID(), mNativePtr = " + mNativePtr);
+            if (mPropertyData == null)
+                mPropertyData = new byte[TOTAL_PROPERTY_COUNT * 4];
+            nGetFullPathProperties(mNativePtr, mPropertyData, TOTAL_PROPERTY_COUNT * 4);
+		}
+
+		/** @hide */
+		public void unflattenForFLUID() {
+			Log.d(DUI_TAG, "unflattenForFLUID(), mNativePtr = " + mNativePtr);
+            mNativePtr = nCreateFullPath();
+		}
+
+		/** @hide */
+		public void restoreNativeData() {
+			if (mPathName != null)
+				nSetName(mNativePtr, mPathName);
+			setPathData(mPathData);
+            ByteBuffer properties = ByteBuffer.wrap(mPropertyData);
+            properties.order(ByteOrder.nativeOrder());
+            float strokeWidth = properties.getFloat(STROKE_WIDTH_INDEX * 4);
+            int strokeColor = properties.getInt(STROKE_COLOR_INDEX * 4);
+            float strokeAlpha = properties.getFloat(STROKE_ALPHA_INDEX * 4);
+            int fillColor =  properties.getInt(FILL_COLOR_INDEX * 4);
+            float fillAlpha = properties.getFloat(FILL_ALPHA_INDEX * 4);
+            float trimPathStart = properties.getFloat(TRIM_PATH_START_INDEX * 4);
+            float trimPathEnd = properties.getFloat(TRIM_PATH_END_INDEX * 4);
+            float trimPathOffset = properties.getFloat(TRIM_PATH_OFFSET_INDEX * 4);
+            int strokeLineCap =  properties.getInt(STROKE_LINE_CAP_INDEX * 4);
+            int strokeLineJoin = properties.getInt(STROKE_LINE_JOIN_INDEX * 4);
+            float strokeMiterLimit = properties.getFloat(STROKE_MITER_LIMIT_INDEX * 4);
+            int fillType = properties.getInt(FILL_TYPE_INDEX * 4);
+            nUpdateFullPathProperties(mNativePtr, strokeWidth, strokeColor, strokeAlpha,
+                    fillColor, fillAlpha, trimPathStart, trimPathEnd, trimPathOffset,
+                    strokeMiterLimit, strokeLineCap, strokeLineJoin, fillType);
+
+			if (mFillColors instanceof  GradientColor) {
+				Shader fillGradient = ((GradientColor) mFillColors).getShader();
+				nUpdateFullPathFillGradient(mNativePtr,
+						fillGradient != null ? fillGradient.getNativeInstance() : 0);
+			}
+
+			if (mStrokeColors instanceof GradientColor) {
+				Shader strokeGradient = ((GradientColor) mStrokeColors).getShader();
+				nUpdateFullPathStrokeGradient(mNativePtr,
+						strokeGradient != null ? strokeGradient.getNativeInstance() : 0);
+			}
+		}
+		/* mobiledui: end */
+
         private static final int STROKE_WIDTH_INDEX = 0;
         private static final int STROKE_COLOR_INDEX = 1;
         private static final int STROKE_ALPHA_INDEX = 2;
@@ -1791,7 +1948,10 @@ public class VectorDrawable extends Drawable {
 
         ComplexColor mStrokeColors = null;
         ComplexColor mFillColors = null;
-        private final long mNativePtr;
+        //private final long mNativePtr;
+		/* mobiledui: start */
+        private long mNativePtr;
+		/* mobiledui: end */
 
         public VFullPath() {
             mNativePtr = nCreateFullPath();
@@ -2166,6 +2326,9 @@ public class VectorDrawable extends Drawable {
         abstract boolean hasFocusStateSpecified();
         abstract int getNativeSize();
         abstract Property getProperty(String propertyName);
+		/* mobiledui: start */
+		abstract public void restoreNativeData();
+		/* mobiledui: end */
     }
 
     private static native int nDraw(long rendererPtr, long canvasWrapperPtr,

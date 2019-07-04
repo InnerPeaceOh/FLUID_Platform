@@ -76,6 +76,16 @@ import java.util.concurrent.atomic.AtomicReference;
  * how text appears when drawn (and measured).
  */
 public class Typeface {
+	/* mobiledui: start */
+	/** @hide */
+	public String mFontName = "null";
+
+	/** @hide */
+	public boolean mIsSystemFont = false;
+
+	/** @hide */
+	public int howCreate;
+	/* mobiledui: end */
 
     private static String TAG = "Typeface";
 
@@ -169,7 +179,14 @@ public class Typeface {
                         mgr, path, 0 /* ttcIndex */, null /* axes */,
                         RESOLVE_BY_FONT_TABLE /* weight */, RESOLVE_BY_FONT_TABLE /* italic */);
                 Typeface typeface = sDynamicTypefaceCache.get(key);
-                if (typeface != null) return typeface;
+                //if (typeface != null) return typeface;
+				/* mobiledui: start */
+                if (typeface != null) {
+					if (typeface.howCreate == 0)
+						typeface.howCreate = 1;
+					return typeface;
+				}
+				/* mobiledui: end */
 
                 FontFamily fontFamily = new FontFamily();
                 // TODO: introduce ttc index and variation settings to resource type font.
@@ -183,6 +200,10 @@ public class Typeface {
                     typeface = createFromFamiliesWithDefault(families,
                             RESOLVE_BY_FONT_TABLE, RESOLVE_BY_FONT_TABLE);
                     sDynamicTypefaceCache.put(key, typeface);
+					/* mobiledui: start */
+					if (typeface.howCreate == 0)
+						typeface.howCreate = 2;
+					/* mobiledui: end */
                     return typeface;
                 }
             }
@@ -218,10 +239,18 @@ public class Typeface {
                 FontRequest request = new FontRequest(providerEntry.getAuthority(),
                         providerEntry.getPackage(), providerEntry.getQuery(), certs);
                 Typeface typeface = FontsContract.getFontSync(request);
+				/* mobiledui: start */
+				if (typeface.howCreate == 0)
+					typeface.howCreate = 3;
+				/* mobiledui: end */
                 return typeface == null ? DEFAULT : typeface;
             }
 
             Typeface typeface = findFromCache(mgr, path);
+			/* mobiledui: start */
+			if (typeface.howCreate == 0)
+				typeface.howCreate = 4;
+			/* mobiledui: end */
             if (typeface != null) return typeface;
 
             // family is FontFamilyFilesResourceEntry
@@ -249,6 +278,10 @@ public class Typeface {
                         RESOLVE_BY_FONT_TABLE /* italic */);
                 sDynamicTypefaceCache.put(key, typeface);
             }
+			/* mobiledui: start */
+			if (typeface.howCreate == 0)
+				typeface.howCreate = 5;
+			/* mobiledui: end */
             return typeface;
         }
         return null;
@@ -264,6 +297,10 @@ public class Typeface {
                     RESOLVE_BY_FONT_TABLE /* weight */, RESOLVE_BY_FONT_TABLE /* italic */);
             Typeface typeface = sDynamicTypefaceCache.get(key);
             if (typeface != null) {
+				/* mobiledui: start */
+				if (typeface.howCreate == 0)
+					typeface.howCreate = 6;
+				/* mobiledui: end */
                 return typeface;
             }
         }
@@ -698,6 +735,10 @@ public class Typeface {
         if (family != null) {
             // Return early if we're asked for the same face/style
             if (family.mStyle == style) {
+				/* mobiledui: start */
+				if (family.howCreate == 0)
+					family.howCreate = 8;
+				/* mobiledui: end */
                 return family;
             }
 
@@ -710,6 +751,10 @@ public class Typeface {
         if (styles != null) {
             typeface = styles.get(style);
             if (typeface != null) {
+				/* mobiledui: start */
+				if (typeface.howCreate == 0)
+					typeface.howCreate = 9;
+				/* mobiledui: end */
                 return typeface;
             }
         }
@@ -721,6 +766,10 @@ public class Typeface {
         }
         styles.put(style, typeface);
 
+		/* mobiledui: start */
+		if (typeface.howCreate == 0)
+			typeface.howCreate = 10;
+		/* mobiledui: end */
         return typeface;
     }
 
@@ -754,11 +803,22 @@ public class Typeface {
         if (sFallbackFonts != null) {
             synchronized (sLock) {
                 Typeface typeface = new Builder(mgr, path).build();
-                if (typeface != null) return typeface;
+                //if (typeface != null) return typeface;
+				/* mobiledui: start */
+                if (typeface != null) {
+					if (typeface.howCreate == 0)
+						typeface.howCreate = 12;
+					return typeface;
+				}
+				/* mobiledui: end */
 
                 final String key = Builder.createAssetUid(mgr, path, 0 /* ttcIndex */,
                         null /* axes */, RESOLVE_BY_FONT_TABLE, RESOLVE_BY_FONT_TABLE);
                 typeface = sDynamicTypefaceCache.get(key);
+				/* mobiledui: start */
+				if (typeface.howCreate == 0)
+					typeface.howCreate = 13;
+				/* mobiledui: end */
                 if (typeface != null) return typeface;
 
                 final FontFamily fontFamily = new FontFamily();
@@ -775,6 +835,10 @@ public class Typeface {
                     typeface = createFromFamiliesWithDefault(families, RESOLVE_BY_FONT_TABLE,
                             RESOLVE_BY_FONT_TABLE);
                     sDynamicTypefaceCache.put(key, typeface);
+					/* mobiledui: start */
+					if (typeface.howCreate == 0)
+						typeface.howCreate = 14;
+					/* mobiledui: end */
                     return typeface;
                 } else {
                     fontFamily.abortCreation();
@@ -965,6 +1029,10 @@ public class Typeface {
                                 RESOLVE_BY_FONT_TABLE, RESOLVE_BY_FONT_TABLE);
                     }
                     systemFonts.put(f.getName(), typeface);
+					/* mobiledui: start */
+					typeface.mFontName = f.getName();
+					typeface.mIsSystemFont = true;
+					/* mobiledui: end */
                 }
             }
             for (FontConfig.Alias alias : fontConfig.getAliases()) {
@@ -975,6 +1043,10 @@ public class Typeface {
                     newFace = new Typeface(nativeCreateWeightAlias(base.native_instance, weight));
                 }
                 systemFonts.put(alias.getName(), newFace);
+				/* mobiledui: start */
+				newFace.mFontName = alias.getName();
+				newFace.mIsSystemFont = true;
+				/* mobiledui: end */
             }
             sSystemFontMap = systemFonts;
 

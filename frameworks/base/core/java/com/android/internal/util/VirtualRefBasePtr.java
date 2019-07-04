@@ -21,7 +21,10 @@ package com.android.internal.util;
  * object. This will incStrong in the ctor, and decStrong in the finalizer
  */
 public final class VirtualRefBasePtr {
-    private long mNativePtr;
+    //private long mNativePtr;
+	/* mobiledui: start */
+    private transient long mNativePtr;
+	/* mobiledui: end */
 
     public VirtualRefBasePtr(long ptr) {
         mNativePtr = ptr;

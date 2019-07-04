@@ -640,4 +640,9 @@ interface IActivityManager {
 
      void setShowWhenLocked(in IBinder token, boolean showWhenLocked);
      void setTurnScreenOn(in IBinder token, boolean turnScreenOn);
+
+	 /* mobiledui: start */
+	 IBinder startFLUIDActivity();
+	 IBinder getAppTokenForTopActivity();
+	 /* mobiledui: end */
 }

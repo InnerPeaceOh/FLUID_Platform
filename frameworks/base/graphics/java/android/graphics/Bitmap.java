@@ -37,6 +37,36 @@ import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 
 public final class Bitmap implements Parcelable {
+
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(Bitmap)";
+    private static final boolean DUI_DEBUG = false;
+
+	/** @hide */
+	byte[] mNativeData;
+
+	/** @hide */
+	public void flattenForFLUID() {
+		if (DUI_DEBUG)
+			Log.d(DUI_TAG, "flattenForFLUID(), mNativePtr = " + mNativePtr);
+		mNativeData = nativeFLUIDFlatten(mNativePtr, mIsMutable, mDensity);
+		if (mNativeData == null)
+			Log.d(DUI_TAG, "flattenForFLUID() failed. mNativeData is null");
+	}
+
+	/** @hide */
+	public void unflattenForFLUID() {
+		mNativePtr = nativeFLUIDUnflatten(mNativeData);
+		if (DUI_DEBUG)
+			Log.d(DUI_TAG, "unflattenForFLUID(), mNativePtr = " + mNativePtr);
+		if (mNativePtr == 0) 
+			Log.d(DUI_TAG, "unflattenForFLUID() failed.");
+	}
+
+    private static native byte[] nativeFLUIDFlatten(long handle, boolean isMutable, int density);
+    private static native long nativeFLUIDUnflatten(byte[] buffer);
+	/* mobiledui: end */
+
     private static final String TAG = "Bitmap";
 
     /**
@@ -52,7 +82,10 @@ public final class Bitmap implements Parcelable {
     private static final long NATIVE_ALLOCATION_SIZE = 32;
 
     // Convenience for JNI access
-    private final long mNativePtr;
+    //private final long mNativePtr;
+	/* mobiledui: start */
+    private transient long mNativePtr;
+	/* mobiledui: end */
 
     private final boolean mIsMutable;
 

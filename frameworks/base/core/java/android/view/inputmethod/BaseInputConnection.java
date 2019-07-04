@@ -47,6 +47,12 @@ class ComposingText implements NoCopySpan {
  * to refer to the documentation in {@link InputConnection}.
  */
 public class BaseInputConnection implements InputConnection {
+	/* mobiledui: start */
+	/** @hide */
+	public View getView() {
+		return mTargetView;
+	}
+	/* mobiledui: end */
     private static final boolean DEBUG = false;
     private static final String TAG = "BaseInputConnection";
     static final Object COMPOSING = new ComposingText();

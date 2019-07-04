@@ -48,6 +48,9 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import libcore.io.IoUtils;
+/* mobiledui: start */
+import java.util.HashSet;
+/* mobiledui: end */
 
 /**
  * A connection that can make spawn requests.
@@ -71,6 +74,9 @@ class ZygoteConnection {
     private final Credentials peer;
     private final String abiList;
     private boolean isEof;
+	/* mobiledui: start */
+	private HashSet<String> mNoRpcApps;
+	/* mobiledui: end */
 
     /**
      * Constructs instance from connected socket.
@@ -99,6 +105,118 @@ class ZygoteConnection {
         }
 
         isEof = false;
+
+		/* mobiledui: start */
+		mNoRpcApps = new HashSet<String>();
+
+		mNoRpcApps.add("com.android.cts.priv.ctsshim");
+		mNoRpcApps.add("com.android.providers.telephony");
+		mNoRpcApps.add("com.android.providers.calendar");
+		mNoRpcApps.add("com.android.providers.media");
+		mNoRpcApps.add("com.qti.service.colorservice");
+		mNoRpcApps.add("com.qualcomm.shutdownlistner");
+		mNoRpcApps.add("com.android.wallpapercropper");
+		mNoRpcApps.add("com.android.documentsui");
+		mNoRpcApps.add("android.auto_generated_rro__");
+		mNoRpcApps.add("com.android.externalstorage");
+		mNoRpcApps.add("com.android.htmlviewer");
+		mNoRpcApps.add("com.android.companiondevicemanager");
+		mNoRpcApps.add("com.android.quicksearchbox");
+		mNoRpcApps.add("com.android.mms.service");
+		mNoRpcApps.add("com.android.providers.downloads");
+		mNoRpcApps.add("com.android.messaging");
+		mNoRpcApps.add("com.qualcomm.qti.telephonyservice");
+		mNoRpcApps.add("com.android.defcontainer");
+		mNoRpcApps.add("com.rsupport.mobizen.cn");
+		mNoRpcApps.add("com.android.providers.downloads.ui");
+		mNoRpcApps.add("com.android.vending");
+		mNoRpcApps.add("com.android.pacprocessor");
+		mNoRpcApps.add("com.android.certinstaller");
+		mNoRpcApps.add("com.android.carrierconfig");
+		mNoRpcApps.add("com.qti.qualcomm.datastatusnotification");
+		mNoRpcApps.add("android");
+		mNoRpcApps.add("com.android.contacts");
+		mNoRpcApps.add("com.android.camera2");
+		mNoRpcApps.add("com.android.egg");
+		mNoRpcApps.add("com.android.mtp");
+		mNoRpcApps.add("com.android.nfc");
+		mNoRpcApps.add("com.android.stk");
+		mNoRpcApps.add("com.android.launcher3");
+		mNoRpcApps.add("com.android.backupconfirm");
+		mNoRpcApps.add("com.android.provision");
+		mNoRpcApps.add("com.qualcomm.qti.radioconfiginterface");
+		mNoRpcApps.add("org.codeaurora.ims");
+		mNoRpcApps.add("com.android.statementservice");
+		mNoRpcApps.add("com.android.calendar");
+		mNoRpcApps.add("com.koushikdutta.vysor");
+		mNoRpcApps.add("com.android.systemui.theme.dark");
+		mNoRpcApps.add("com.qualcomm.qti.auth.secureextauthservice");
+		mNoRpcApps.add("com.android.providers.settings");
+		mNoRpcApps.add("com.android.sharedstoragebackup");
+		mNoRpcApps.add("com.android.printspooler");
+		mNoRpcApps.add("com.android.dreams.basic");
+		mNoRpcApps.add("com.android.webview");
+		mNoRpcApps.add("com.android.inputdevices");
+		mNoRpcApps.add("com.android.bips");
+		mNoRpcApps.add("com.android.musicfx");
+		mNoRpcApps.add("com.android.cellbroadcastreceiver");
+		mNoRpcApps.add("android.ext.shared");
+		mNoRpcApps.add("com.android.onetimeinitializer");
+		mNoRpcApps.add("com.android.server.telecom");
+		mNoRpcApps.add("com.android.keychain");
+		mNoRpcApps.add("com.android.printservice.recommendation");
+		mNoRpcApps.add("com.qualcomm.qti.rcsbootstraputil");
+		mNoRpcApps.add("com.android.dialer");
+		mNoRpcApps.add("com.android.gallery3d");
+		mNoRpcApps.add("com.google.android.gms");
+		mNoRpcApps.add("com.google.android.gsf");
+		mNoRpcApps.add("android.ext.services");
+		mNoRpcApps.add("com.android.calllogbackup");
+		mNoRpcApps.add("com.android.packageinstaller");
+		mNoRpcApps.add("com.android.carrierdefaultapp");
+		mNoRpcApps.add("com.svox.pico");
+		mNoRpcApps.add("com.google.telephonymonitor");
+		mNoRpcApps.add("com.android.proxyhandler");
+		mNoRpcApps.add("com.google.SSRestartDetector");
+		mNoRpcApps.add("com.android.inputmethod.latin");
+		mNoRpcApps.add("org.chromium.webview_shell");
+		mNoRpcApps.add("com.android.managedprovisioning");
+		mNoRpcApps.add("com.android.dreams.phototable");
+		mNoRpcApps.add("com.android.smspush");
+		mNoRpcApps.add("com.android.wallpaper.livepicker");
+		mNoRpcApps.add("com.android.apps.tag");
+		mNoRpcApps.add("com.android.storagemanager");
+		mNoRpcApps.add("jp.co.omronsoft.openwnn");
+		mNoRpcApps.add("com.android.bookmarkprovider");
+		mNoRpcApps.add("com.android.settings");
+		mNoRpcApps.add("com.qualcomm.qti.ims");
+		mNoRpcApps.add("com.android.calculator2");
+		mNoRpcApps.add("com.android.cts.ctsshim");
+		mNoRpcApps.add("com.android.vpndialogs");
+		mNoRpcApps.add("com.android.email");
+		mNoRpcApps.add("com.android.music");
+		mNoRpcApps.add("com.android.phone");
+		mNoRpcApps.add("com.android.shell");
+		mNoRpcApps.add("com.android.wallpaperbackup");
+		mNoRpcApps.add("com.android.providers.blockednumber");
+		mNoRpcApps.add("com.android.providers.userdictionary");
+		mNoRpcApps.add("com.android.emergency");
+		mNoRpcApps.add("media.music.musicplayer");
+		mNoRpcApps.add("com.android.location.fused");
+		mNoRpcApps.add("com.android.deskclock");
+		mNoRpcApps.add("com.android.systemui");
+		mNoRpcApps.add("com.android.bluetoothmidiservice");
+		mNoRpcApps.add("com.qualcomm.fastdormancy");
+		mNoRpcApps.add("com.google.android.gms.setup");
+		mNoRpcApps.add("com.android.bluetooth");
+		mNoRpcApps.add("com.qualcomm.timeservice");
+		mNoRpcApps.add("com.qualcomm.atfwd");
+		mNoRpcApps.add("com.android.wallpaperpicker");
+		mNoRpcApps.add("com.qualcomm.embms");
+		mNoRpcApps.add("com.android.providers.contacts");
+		mNoRpcApps.add("com.android.captiveportallogin");
+		mNoRpcApps.add("jp.gr.java_conf.taketake.KyusokuHouden");
+		/* mobiledui: end */
     }
 
     /**
@@ -764,6 +882,14 @@ class ZygoteConnection {
          * socket connections, and substituted /dev/null in their place.  The LocalSocket
          * objects still need to be closed properly.
          */
+
+		/* mobiledui: start */
+		// Be consistent with the part which cancels RPC gadgets in LayoutInflater.createView()
+//		Log.d("MOBILEDUI(ZygoteConn.)", "name = " + parsedArgs.niceName + ", uid = " + parsedArgs.uid
+//					+ ", gid = " + parsedArgs.gid + ", appDataDir = " + parsedArgs.appDataDir);
+		if (mNoRpcApps.contains(parsedArgs.niceName))
+			Class.cancelRpcGadget();
+		/* mobiledui: end */
 
         closeSocket();
         if (descriptors != null) {

@@ -454,6 +454,45 @@ import libcore.util.EmptyArray;
 public class ActivityManagerService extends IActivityManager.Stub
         implements Watchdog.Monitor, BatteryStatsImpl.BatteryCallback {
 
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(AMService)";
+    private static final boolean DUI_DEBUG = false;
+
+	@Override
+	public IBinder startFLUIDActivity() throws RemoteException {
+		int res = -1;
+		ActivityRecord topActivity = null;
+		ProcessRecord proc = null;
+		synchronized (this) {
+			Intent intent = new Intent();
+			ComponentName cn = new ComponentName("com.fluid.wrapperapp", 
+					"com.fluid.wrapperapp.MainActivity");
+			intent.setComponent(cn);
+			intent.setFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT 
+					| Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+
+			res = mActivityStarter.startActivityMayWait(null, Binder.getCallingUid(), 
+					null, intent, null, null, null, null, null, 0, 0, null, null, null, 
+					null, false, 0, null, "startFLUIDActivity");
+
+			topActivity = mStackSupervisor.topRunningActivityLocked();
+			if (DUI_DEBUG) Log.d(DUI_TAG, "startFLUIDActivity(), topActivity = " + topActivity);
+		}
+		do {
+			proc = getProcessRecordLocked(topActivity.processName, topActivity.info.applicationInfo.uid, true);
+		} while (proc == null || proc.thread == null);
+		if (DUI_DEBUG) Log.d(DUI_TAG, "startFLUIDActivity(), proc = " + proc + ", thread = " + proc.thread);
+		return (res == 0)? proc.thread.asBinder() : null;
+	}
+
+	@Override
+	public IBinder getAppTokenForTopActivity() throws RemoteException {
+		ActivityRecord topActivity = mStackSupervisor.topRunningActivityLocked();
+		if (DUI_DEBUG) Log.d(DUI_TAG, "getAppTokenForTopActivity(), topActivity = " + topActivity + ", appToken = " + topActivity.appToken);
+		return (topActivity != null)? topActivity.appToken.asBinder() : null;
+	}
+	/* mobiledui: end */
+
     /**
      * Priority we boost main thread and RT of top app to.
      */

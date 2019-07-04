@@ -328,6 +328,11 @@ public final class Parcel {
     @CriticalNative
     private static native long nativeGetBlobAshmemSize(long nativePtr);
 
+	/* mobiledui: start */
+    private static native void nativeWriteToAshmem(long nativePtr, byte[] b, int offset, int len);
+    private static native byte[] nativeReadFromAshmem(long nativePtr);
+	/* mobiledui: end */
+
     public final static Parcelable.Creator<String> STRING_CREATOR
              = new Parcelable.Creator<String>() {
         public String createFromParcel(Parcel source) {
@@ -3225,4 +3230,16 @@ public final class Parcel {
     public long getBlobAshmemSize() {
         return nativeGetBlobAshmemSize(mNativePtr);
     }
+
+	/* mobiledui: start */
+	/** @hide */
+    public final void writeToAshmem(byte[] b) {
+        nativeWriteToAshmem(mNativePtr, b, 0, (b != null) ? b.length : 0);
+    }
+
+	/** @hide */
+    public final byte[] readFromAshmem() {
+        return nativeReadFromAshmem(mNativePtr);
+    }
+	/* mobiledui: end */
 }

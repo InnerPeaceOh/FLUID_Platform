@@ -175,6 +175,7 @@ import java.util.Arrays;
  * document.</p></div>
  */
 public abstract class Drawable {
+
     private static final Rect ZERO_BOUNDS_RECT = new Rect();
 
     static final PorterDuff.Mode DEFAULT_TINT_MODE = PorterDuff.Mode.SRC_IN;
@@ -182,7 +183,10 @@ public abstract class Drawable {
     private int[] mStateSet = StateSet.WILD_CARD;
     private int mLevel = 0;
     private @Config int mChangingConfigurations = 0;
-    private Rect mBounds = ZERO_BOUNDS_RECT;  // lazily becomes a new Rect()
+    //private Rect mBounds = ZERO_BOUNDS_RECT;  // lazily becomes a new Rect()
+	/* mobiledui: start */
+    private Rect mBounds = new Rect();
+	/* mobiledui: end */
     private WeakReference<Callback> mCallback = null;
     private boolean mVisible = true;
 

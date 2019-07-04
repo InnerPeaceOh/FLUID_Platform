@@ -19,6 +19,17 @@ package android.graphics;
 import android.os.SystemClock;
 
 public class Interpolator {
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(Interpolator)";
+    private static final boolean DUI_DEBUG = false;
+
+	/** @hide */
+	public void unflattenForFLUID() {
+		if (DUI_DEBUG)
+			android.util.Log.d(DUI_TAG, "unflattenForFLUID()");
+        native_instance = nativeConstructor(mValueCount, mFrameCount);
+	}
+	/* mobiledui: end */
 
     public Interpolator(int valueCount) {
         mValueCount = valueCount;

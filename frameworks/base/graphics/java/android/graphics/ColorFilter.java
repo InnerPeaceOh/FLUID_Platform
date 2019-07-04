@@ -24,6 +24,18 @@ import libcore.util.NativeAllocationRegistry;
  * never be used directly.
  */
 public class ColorFilter {
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(ColorFilter)";
+    private static final boolean DUI_DEBUG = false;
+
+	/** @hide */
+	public void unflattenForFLUID() {
+		if (DUI_DEBUG)
+			android.util.Log.d(DUI_TAG, "unflattenForFLUID()");
+		mNativeInstance = 0;
+		getNativeInstance();
+	}
+	/* mobiledui: end */
 
     private static class NoImagePreloadHolder {
         public static final NativeAllocationRegistry sRegistry = new NativeAllocationRegistry(
@@ -41,7 +53,10 @@ public class ColorFilter {
      */
     private long mNativeInstance;
     // Runnable to do immediate destruction
-    private Runnable mCleaner;
+    //private Runnable mCleaner;
+	/* mobiledui: start */
+    transient private Runnable mCleaner;
+	/* mobiledui: end */
 
     long createNativeInstance() {
         return 0;

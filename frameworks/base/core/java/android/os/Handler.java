@@ -64,6 +64,19 @@ import java.lang.reflect.Modifier;
  * in the Handler's message queue and processed when appropriate.
  */
 public class Handler {
+	/* mobiledui: start */
+	private boolean mDisableForFLUID = false;
+
+	/** @hide */
+	public void setDisableForFLUID(boolean disable) {
+		mDisableForFLUID = disable;
+	}
+
+	/** @hide */
+	public boolean isDisableForFLUID() {
+		return mDisableForFLUID;
+	}
+	/* mobiledui: end */
     /*
      * Set this flag to true to detect anonymous, local or member classes
      * that extend this Handler class and that are not static. These kind

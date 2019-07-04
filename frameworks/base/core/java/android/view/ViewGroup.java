@@ -138,12 +138,21 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     protected OnHierarchyChangeListener mOnHierarchyChangeListener;
 
     // The view contained within this ViewGroup that has or contains focus.
-    private View mFocused;
+    //private View mFocused;
+	/* mobiledui: start */
+    private transient View mFocused;
+	/* mobiledui: end */
     // The view contained within this ViewGroup (excluding nested keyboard navigation clusters)
     // that is or contains a default-focus view.
-    private View mDefaultFocus;
+    //private View mDefaultFocus;
+	/* mobiledui: start */
+    private transient View mDefaultFocus;
+	/* mobiledui: end */
     // The last child of this ViewGroup which held focus within the current cluster
-    View mFocusedInCluster;
+    //View mFocusedInCluster;
+	/* mobiledui: start */
+    transient View mFocusedInCluster;
+	/* mobiledui: end */
 
     /**
      * A Transformation used when drawing children, to
@@ -182,7 +191,10 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     private Animation.AnimationListener mAnimationListener;
 
     // First touch target in the linked list of touch targets.
-    private TouchTarget mFirstTouchTarget;
+    //private TouchTarget mFirstTouchTarget;
+	/* mobiledui: start */
+    private transient TouchTarget mFirstTouchTarget;
+	/* mobiledui: end */
 
     // For debugging only.  You can see these in hierarchyviewer.
     @SuppressWarnings({"FieldCanBeLocal", "UnusedDeclaration"})
@@ -473,10 +485,17 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     private static final int CHILD_TOP_INDEX = 1;
 
     // Child views of this ViewGroup
-    private View[] mChildren;
+    //private View[] mChildren;
+	/* mobiledui: start */
+    private transient View[] mChildren;
+	/* mobiledui: end */
+
     // Number of valid children in the mChildren array, the rest should be null or not
     // considered as children
-    private int mChildrenCount;
+    //private int mChildrenCount;
+	/* mobiledui: start */
+    private transient int mChildrenCount;
+	/* mobiledui: end */
 
     // Whether layout calls are currently being suppressed, controlled by calls to
     // suppressLayout()

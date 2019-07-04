@@ -35,6 +35,12 @@ import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputConnectionInspector;
 import android.view.inputmethod.InputConnectionInspector.MissingMethodFlags;
 import android.view.inputmethod.InputContentInfo;
+/* mobiledui: start */
+import android.fluid.FLUIDManager;
+import android.view.View;
+import android.view.inputmethod.BaseInputConnection;
+import com.android.internal.widget.EditableInputConnection;
+/* mobiledui: end */
 
 public abstract class IInputConnectionWrapper extends IInputContext.Stub {
     private static final String TAG = "IInputConnectionWrapper";
@@ -230,7 +236,32 @@ public abstract class IInputConnectionWrapper extends IInputContext.Stub {
         mH.sendMessage(msg);
     }
 
+	/* mobiledui: start */
+	boolean sendIMEMessage(Message msg) {
+		InputConnection ic = getInputConnection();
+		if (ic == null || !(ic instanceof EditableInputConnection)) 
+			return true;
+
+		View view = ((BaseInputConnection)ic).getView();
+
+		if (view != null && FLUIDManager.isMigrated(view) 
+				&& !FLUIDManager.isInRemote(view) && view.mFLUIDManager != null) {
+			int id = view.zObjectId;
+			view.mFLUIDManager.sendIMEInput(id, msg);
+		}
+		else if (view != null && FLUIDManager.isMigrated(view)
+				&& FLUIDManager.isInRemote(view) && view.mFLUIDManager != null) {
+			return false;
+		}
+		return true;
+	}
+	/* mobiledui: end */
+
     void executeMessage(Message msg) {
+		/* mobiledui: start */
+		if(!sendIMEMessage(msg))
+			return;
+		/* mobiledui: end */
         switch (msg.what) {
             case DO_GET_TEXT_AFTER_CURSOR: {
                 SomeArgs args = (SomeArgs)msg.obj;

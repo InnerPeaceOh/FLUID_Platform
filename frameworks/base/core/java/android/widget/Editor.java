@@ -219,7 +219,10 @@ public class Editor {
     boolean mIgnoreActionUpEvent;
 
     long mShowCursor;
-    private Blink mBlink;
+    //private Blink mBlink;
+	/* mobiledui: start */
+    private transient Blink mBlink;
+	/* mobiledui: end */
 
     boolean mCursorVisible = true;
     boolean mSelectAllOnFocus;
@@ -4460,6 +4463,11 @@ public class Editor {
 
         @Override
         protected void onDraw(Canvas c) {
+			/* mobiledui: start */
+			if (android.fluid.FLUIDManager.isMigrated(mTextView) 
+					&& android.fluid.FLUIDManager.isInRemote(mTextView))
+				return;
+			/* mobiledui: end */
             final int drawWidth = mDrawable.getIntrinsicWidth();
             final int left = getHorizontalOffset();
 

@@ -108,7 +108,10 @@ public class HorizontalScrollView extends FrameLayout {
     /**
      * Determines speed during touch scrolling
      */
-    private VelocityTracker mVelocityTracker;
+    //private VelocityTracker mVelocityTracker;
+	/* mobiledui: start */
+    private transient VelocityTracker mVelocityTracker;
+	/* mobiledui: end */
 
     /**
      * When set to true, the scroll view measure its child to make it fill the currently

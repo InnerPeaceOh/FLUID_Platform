@@ -201,7 +201,10 @@ public class RelativeLayout extends ViewGroup {
      */
     private static final int VALUE_NOT_SET = Integer.MIN_VALUE;
 
-    private View mBaselineView = null;
+    //private View mBaselineView = null;
+	/* mobiledui: start */
+    transient private View mBaselineView = null;
+	/* mobiledui: end */
 
     private int mGravity = Gravity.START | Gravity.TOP;
     private final Rect mContentBounds = new Rect();
@@ -211,9 +214,14 @@ public class RelativeLayout extends ViewGroup {
     private SortedSet<View> mTopToBottomLeftToRightSet = null;
 
     private boolean mDirtyHierarchy;
-    private View[] mSortedHorizontalChildren;
-    private View[] mSortedVerticalChildren;
-    private final DependencyGraph mGraph = new DependencyGraph();
+    //private View[] mSortedHorizontalChildren;
+    //private View[] mSortedVerticalChildren;
+    //private final DependencyGraph mGraph = new DependencyGraph();
+	/* mobiledui: start */
+    transient private View[] mSortedHorizontalChildren;
+    transient private View[] mSortedVerticalChildren;
+    transient private final DependencyGraph mGraph = new DependencyGraph();
+	/* mobiledui: end */
 
     // Compatibility hack. Old versions of the platform had problems
     // with MeasureSpec value overflow and RelativeLayout was one source of them.

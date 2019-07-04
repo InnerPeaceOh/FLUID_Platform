@@ -28,6 +28,18 @@ import libcore.util.NativeAllocationRegistry;
  * drawn with that paint will get its color(s) from the shader.
  */
 public class Shader {
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(Shader)";
+    private static final boolean DUI_DEBUG = false;
+
+	/** @hide */
+	public void unflattenForFLUID() {
+		if (DUI_DEBUG)
+			android.util.Log.d(DUI_TAG, "unflattenForFLUID()");
+		mNativeInstance = 0;
+		getNativeInstance();
+	}
+	/* mobiledui: end */
 
     private static class NoImagePreloadHolder {
         public static final NativeAllocationRegistry sRegistry = new NativeAllocationRegistry(
@@ -46,7 +58,10 @@ public class Shader {
      */
     private long mNativeInstance;
     // Runnable to do immediate destruction
-    private Runnable mCleaner;
+    //private Runnable mCleaner;
+	/* mobiledui: start */
+    transient private Runnable mCleaner;
+	/* mobiledui: end */
 
     /**
      * Current matrix - always set to null if local matrix is identity.

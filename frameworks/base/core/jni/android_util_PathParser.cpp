@@ -99,7 +99,85 @@ static void setSkPathFromPathData(JNIEnv*, jobject, jlong outPathPtr, jlong path
     VectorDrawableUtils::verbsToPath(skPath, *pathData);
 }
 
+/* mobiledui: start */
+#define FLATTEN(dst, src, size) \
+			{ \
+				memcpy(dst, src, size); \
+				dst += size; \
+			}
+
+#define UNFLATTEN(dst, src, size) \
+			{ \
+				memcpy(dst, src, size); \
+				src += size; \
+			}
+
+static jbyteArray flattenForFLUID(JNIEnv* env, jobject clazz, jlong handle) {
+    PathData* obj = reinterpret_cast<PathData*>(handle);
+	if (obj) {
+		size_t size = sizeof(int) * 3
+					+ obj->verbs.size() * sizeof(char)
+					+ obj->verbSizes.size() * sizeof(uint64_t)
+					+ obj->points.size() * sizeof(float);
+		jbyte* buffer = new jbyte[size];
+		jbyte* ptr = buffer;
+		
+		int vectorSize = obj->verbs.size();
+		FLATTEN(ptr, &vectorSize, sizeof(int));
+		for (int i = 0; i < vectorSize; i++) 
+			FLATTEN(ptr, &obj->verbs[i], sizeof(char));
+		vectorSize = obj->verbSizes.size();
+		FLATTEN(ptr, &vectorSize, sizeof(int));
+		for (int i = 0; i < vectorSize; i++) 
+			FLATTEN(ptr, &obj->verbSizes[i], sizeof(uint64_t));
+		vectorSize = obj->points.size();
+		FLATTEN(ptr, &vectorSize, sizeof(int));
+		for (int i = 0; i < vectorSize; i++) 
+			FLATTEN(ptr, &obj->points[i], sizeof(float));
+
+		jbyteArray res = env->NewByteArray(size);
+		env->SetByteArrayRegion(res, 0, size, buffer);
+		delete[] buffer;
+		return res;
+	}
+	return nullptr;
+}
+
+static jboolean unflattenForFLUID(JNIEnv* env, jobject clazz, jlong handle, jbyteArray byteArray) {
+    PathData* obj = reinterpret_cast<PathData*>(handle);
+	jbyte *buffer = env->GetByteArrayElements(byteArray, 0);
+
+	int vectorSize;
+	UNFLATTEN(&vectorSize, buffer, sizeof(int));
+	for (int i = 0; i < vectorSize; i++) {
+		char val;
+		UNFLATTEN(&val, buffer, sizeof(char));
+		obj->verbs.push_back(val);
+	}
+	UNFLATTEN(&vectorSize, buffer, sizeof(int));
+	for (int i = 0; i < vectorSize; i++) {
+		uint64_t val;
+		UNFLATTEN(&val, buffer, sizeof(uint64_t));
+		obj->verbSizes.push_back(val);
+	}
+	UNFLATTEN(&vectorSize, buffer, sizeof(int));
+	for (int i = 0; i < vectorSize; i++) {
+		float val;
+		UNFLATTEN(&val, buffer, sizeof(float));
+		obj->points.push_back(val);
+	}
+
+	return true;
+}
+#undef FLATTEN
+#undef UNFLATTEN
+/* mobiledui: end */
+
 static const JNINativeMethod gMethods[] = {
+	/* mobiledui: start */
+    {"nativeFLUIDFlatten", "(J)[B", (void*)flattenForFLUID},
+    {"nativeFLUIDUnflatten", "(J[B)Z", (void*)unflattenForFLUID},
+	/* mobiledui: end */
     {"nParseStringForPath", "(JLjava/lang/String;I)V", (void*)parseStringForPath},
     {"nCreatePathDataFromString", "(Ljava/lang/String;I)J", (void*)createPathDataFromStringPath},
 
