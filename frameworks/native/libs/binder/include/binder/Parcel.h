@@ -96,8 +96,15 @@ public:
 
     void                freeData();
 
-private:
+//private:
+//    const binder_size_t* objects() const;
+
+	/* mobiledui: start */
     const binder_size_t* objects() const;
+	void				setObjects(const void* refData, size_t refCount);
+	status_t			writeToAshmem(size_t len, WritableBlob* outBlob);
+	status_t			readFromAshmem(size_t len, ReadableBlob* outBlob) const;
+	/* mobiledui: end */
 
 public:
     size_t              objectsCount() const;

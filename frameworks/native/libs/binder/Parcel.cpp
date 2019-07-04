@@ -2781,4 +2781,69 @@ void Parcel::Blob::clear() {
     mMutable = false;
 }
 
+/* mobiledui: start */
+void Parcel::setObjects(const void* refData, size_t refCount)
+{
+	binder_size_t* input = (binder_size_t*)refData;
+	mObjectsSize = mObjectsCapacity = refCount;
+	mObjects = new binder_size_t[refCount];
+	for(size_t i = 0; i < refCount; i++)
+		mObjects[i] = input[i];
+}
+
+status_t Parcel::writeToAshmem(size_t len, WritableBlob* outBlob)
+{
+    status_t status;
+
+    ALOGV("writeBlob: write to ashmem");
+    int fd = ashmem_create_region("Parcel Blob", len);
+    if (fd < 0) return NO_MEMORY;
+
+    int result = ashmem_set_prot_region(fd, PROT_READ | PROT_WRITE);
+    if (result < 0) {
+        status = result;
+    } else {
+        void* ptr = ::mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+        if (ptr == MAP_FAILED) {
+            status = -errno;
+        } else {
+            result = ashmem_set_prot_region(fd, PROT_READ);
+            if (result < 0) {
+                status = result;
+            } else {
+                status = writeInt32(BLOB_ASHMEM_IMMUTABLE);
+                if (!status) {
+                    status = writeFileDescriptor(fd, true /*takeOwnership*/);
+                    if (!status) {
+                        outBlob->init(fd, ptr, len, false);
+                        return NO_ERROR;
+                    }
+                }
+            }
+        }
+        ::munmap(ptr, len);
+    }
+    ::close(fd);
+    return status;
+}
+
+status_t Parcel::readFromAshmem(size_t len, ReadableBlob* outBlob) const
+{
+    int32_t blobType;
+    status_t status = readInt32(&blobType);
+    if (status) return status;
+
+    ALOGV("readBlob: read from ashmem");
+    bool isMutable = (blobType == BLOB_ASHMEM_MUTABLE);
+    int fd = readFileDescriptor();
+    if (fd == int(BAD_TYPE)) return BAD_VALUE;
+
+    void* ptr = ::mmap(NULL, len, PROT_READ, MAP_SHARED, fd, 0);
+    if (ptr == MAP_FAILED) return NO_MEMORY;
+
+    outBlob->init(fd, ptr, len, isMutable);
+    return NO_ERROR;
+}
+/* mobiledui: end */
+
 }; // namespace android
