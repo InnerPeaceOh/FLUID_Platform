@@ -58,6 +58,30 @@ void Arm64Context::FillCalleeSaves(uint8_t* frame, const QuickMethodFrameInfo& f
   DCHECK_EQ(spill_pos, POPCOUNT(frame_info.CoreSpillMask()) + POPCOUNT(frame_info.FpSpillMask()));
 }
 
+// This method is dependent on gadget_arm64.S. 
+void Arm64Context::FillCalleeSavesForFLUID(uint8_t* frame) {
+	gprs_[29] = reinterpret_cast<uintptr_t*>(frame - 2 * sizeof(void*));
+	gprs_[28] = reinterpret_cast<uintptr_t*>(frame - 3 * sizeof(void*));
+	gprs_[27] = reinterpret_cast<uintptr_t*>(frame - 4 * sizeof(void*));
+	gprs_[26] = reinterpret_cast<uintptr_t*>(frame - 5 * sizeof(void*));
+	gprs_[25] = reinterpret_cast<uintptr_t*>(frame - 6 * sizeof(void*));
+	gprs_[24] = reinterpret_cast<uintptr_t*>(frame - 7 * sizeof(void*));
+	gprs_[23] = reinterpret_cast<uintptr_t*>(frame - 8 * sizeof(void*));
+	gprs_[22] = reinterpret_cast<uintptr_t*>(frame - 9 * sizeof(void*));
+	gprs_[21] = reinterpret_cast<uintptr_t*>(frame - 10 * sizeof(void*));
+	gprs_[20] = reinterpret_cast<uintptr_t*>(frame - 11 * sizeof(void*));
+	gprs_[19] = reinterpret_cast<uintptr_t*>(frame - 12 * sizeof(void*));
+
+	fprs_[15] = reinterpret_cast<uintptr_t*>(frame - 48 * sizeof(void*));
+	fprs_[14] = reinterpret_cast<uintptr_t*>(frame - 49 * sizeof(void*));
+	fprs_[13] = reinterpret_cast<uintptr_t*>(frame - 50 * sizeof(void*));
+	fprs_[12] = reinterpret_cast<uintptr_t*>(frame - 51 * sizeof(void*));
+	fprs_[11] = reinterpret_cast<uintptr_t*>(frame - 52 * sizeof(void*));
+	fprs_[10] = reinterpret_cast<uintptr_t*>(frame - 53 * sizeof(void*));
+	fprs_[9] = reinterpret_cast<uintptr_t*>(frame - 54 * sizeof(void*));
+	fprs_[8] = reinterpret_cast<uintptr_t*>(frame - 55 * sizeof(void*));
+}
+
 void Arm64Context::SetGPR(uint32_t reg, uintptr_t value) {
   DCHECK_LT(reg, arraysize(gprs_));
   // Note: we use kPC == XZR, so do not ensure that reg != XZR.

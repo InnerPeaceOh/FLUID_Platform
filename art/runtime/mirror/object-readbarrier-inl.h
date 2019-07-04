@@ -36,6 +36,21 @@ inline LockWord Object::GetLockWord(bool as_volatile) {
   return LockWord(GetField32<kVerifyFlags>(OFFSET_OF_OBJECT_MEMBER(Object, monitor_)));
 }
 
+template<VerifyObjectFlags kVerifyFlags>
+inline uint32_t Object::GetFLUIDFlags(bool as_volatile) {
+  if (as_volatile) {
+    return GetField32Volatile<kVerifyFlags>(OFFSET_OF_OBJECT_MEMBER(Object, z_fluid_flags_));
+  }
+  return GetField32<kVerifyFlags>(OFFSET_OF_OBJECT_MEMBER(Object, z_fluid_flags_));
+}
+template<VerifyObjectFlags kVerifyFlags>
+inline uint32_t Object::GetObjectId(bool as_volatile) {
+  if (as_volatile) {
+    return GetField32Volatile<kVerifyFlags>(OFFSET_OF_OBJECT_MEMBER(Object, z_object_id_));
+  }
+  return GetField32<kVerifyFlags>(OFFSET_OF_OBJECT_MEMBER(Object, z_object_id_));
+}
+
 template<bool kTransactionActive, bool kCheckTransaction, VerifyObjectFlags kVerifyFlags>
 inline bool Object::CasFieldWeakRelaxed32(MemberOffset field_offset,
                                           int32_t old_value, int32_t new_value) {

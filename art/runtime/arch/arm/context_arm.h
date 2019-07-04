@@ -37,6 +37,9 @@ class ArmContext FINAL : public Context {
 
   void FillCalleeSaves(uint8_t* frame, const QuickMethodFrameInfo& fr) OVERRIDE;
 
+  void FillCalleeSavesForFLUID(uint8_t* frame) OVERRIDE
+							REQUIRES_SHARED(Locks::mutator_lock_);
+
   void SetSP(uintptr_t new_sp) OVERRIDE {
     SetGPR(SP, new_sp);
   }

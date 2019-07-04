@@ -282,6 +282,9 @@ Heap::Heap(size_t initial_size,
       seen_backtrace_count_(0u),
       unique_backtrace_count_(0u),
       gc_disabled_for_shutdown_(false) {
+  foreground_collector_type_ = kCollectorTypeCMS;
+  background_collector_type_ = kCollectorTypeCMS;
+  desired_collector_type_ = kCollectorTypeCMS;
   if (VLOG_IS_ON(heap) || VLOG_IS_ON(startup)) {
     LOG(INFO) << "Heap() entering";
   }
@@ -3565,8 +3568,8 @@ class Heap::ConcurrentGCTask : public HeapTask {
  public:
   ConcurrentGCTask(uint64_t target_time, GcCause cause, bool force_full)
       : HeapTask(target_time), cause_(cause), force_full_(force_full) {}
-  virtual void Run(Thread* self) OVERRIDE {
-    gc::Heap* heap = Runtime::Current()->GetHeap();
+	virtual void Run(Thread* self) OVERRIDE {
+		gc::Heap* heap = Runtime::Current()->GetHeap();
     heap->ConcurrentGC(self, cause_, force_full_);
     heap->ClearConcurrentGCRequest();
   }

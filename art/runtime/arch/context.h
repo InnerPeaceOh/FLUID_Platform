@@ -52,6 +52,8 @@ class Context {
   // the method that holds the layout.
   virtual void FillCalleeSaves(uint8_t* frame, const QuickMethodFrameInfo& fr) = 0;
 
+  virtual void FillCalleeSavesForFLUID(uint8_t* /*frame*/) {}
+
   // Sets the stack pointer value.
   virtual void SetSP(uintptr_t new_sp) = 0;
 

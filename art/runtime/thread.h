@@ -42,10 +42,19 @@
 #include "runtime_stats.h"
 #include "suspend_reason.h"
 #include "thread_state.h"
+#include "primitive.h"
 
 class BacktraceMap;
 
 namespace art {
+
+namespace fluid {
+  class ReturnMetadata;
+}
+extern const bool kDebugFLUID;
+extern const bool kStackDebugFLUID;
+extern Mutex* g_fluid_mutex DEFAULT_MUTEX_ACQUIRED_AFTER;
+extern bool checking_call_stack;
 
 namespace gc {
 namespace accounting {
@@ -554,6 +563,16 @@ class Thread {
   // and space efficient to compute than the StackTraceElement[].
   template<bool kTransactionActive>
   jobject CreateInternalStackTrace(const ScopedObjectAccessAlreadyRunnable& soa) const
+      REQUIRES_SHARED(Locks::mutator_lock_);
+
+  ManagedStack* GetNonConstManagedStack() { 
+	return &tlsPtr_.managed_stack; 
+  } 
+
+  int CheckCallStack(uint32_t callee_flags) const
+      REQUIRES_SHARED(Locks::mutator_lock_);
+
+  int PrintCallStack() const
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Convert an internal stack trace representation (returned by CreateInternalStackTrace) to a
@@ -1688,6 +1707,13 @@ class Thread {
   // True if the thread is allowed to call back into java (for e.g. during class resolution).
   // By default this is true.
   bool can_call_into_java_;
+
+public:
+  std::vector<ArtMethod**> fluid_caller_frame_stack_;
+  std::vector<void*> fluid_ret_addrs_;
+  std::vector<fluid::ReturnMetadata*> fluid_ret_metadata_;
+
+private:
 
   friend class Dbg;  // For SetStateUnsafe.
   friend class gc::collector::SemiSpace;  // For getting stack traces.

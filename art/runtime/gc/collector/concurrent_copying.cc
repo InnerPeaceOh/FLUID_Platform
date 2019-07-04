@@ -180,13 +180,13 @@ void ConcurrentCopying::RunPhases() {
   }
   // Verify no from space refs. This causes a pause.
   if (kEnableNoFromSpaceRefsVerification) {
-    TimingLogger::ScopedTiming split("(Paused)VerifyNoFromSpaceReferences", GetTimings());
-    ScopedPause pause(this, false);
-    CheckEmptyMarkStack();
-    if (kVerboseMode) {
-      LOG(INFO) << "Verifying no from-space refs";
-    }
-    VerifyNoFromSpaceReferences();
+		TimingLogger::ScopedTiming split("(Paused)VerifyNoFromSpaceReferences", GetTimings());
+		ScopedPause pause(this, false);
+		CheckEmptyMarkStack();
+		if (kVerboseMode) {
+			LOG(INFO) << "Verifying no from-space refs";
+		}
+		VerifyNoFromSpaceReferences();
     if (kVerboseMode) {
       LOG(INFO) << "Done verifying no from-space refs";
     }
@@ -196,7 +196,7 @@ void ConcurrentCopying::RunPhases() {
     ReaderMutexLock mu(self, *Locks::mutator_lock_);
     ReclaimPhase();
   }
-  FinishPhase();
+	FinishPhase();
   CHECK(is_active_);
   is_active_ = false;
   thread_running_gc_ = nullptr;
@@ -838,6 +838,7 @@ void ConcurrentCopying::MarkingPhase() {
     TimingLogger::ScopedTiming split2("VisitConcurrentRoots", GetTimings());
     Runtime::Current()->VisitConcurrentRoots(this, kVisitRootFlagAllRoots);
   }
+
   {
     // TODO: don't visit the transaction roots if it's not active.
     TimingLogger::ScopedTiming split5("VisitNonThreadRoots", GetTimings());
@@ -2309,13 +2310,15 @@ mirror::Object* ConcurrentCopying::Copy(mirror::Object* from_ref,
   const size_t kObjectHeaderSize = sizeof(mirror::Object);
   DCHECK_GE(obj_size, kObjectHeaderSize);
   static_assert(kObjectHeaderSize == sizeof(mirror::HeapReference<mirror::Class>) +
-                    sizeof(LockWord),
-                "Object header size does not match");
-  // Memcpy can tear for words since it may do byte copy. It is only safe to do this since the
+                    sizeof(LockWord) + sizeof(uint32_t) + sizeof(uint32_t),
+                "Object header size does not match"); // Memcpy can tear for words since it may do byte copy. It is only safe to do this since the
   // object in the from space is immutable other than the lock word. b/31423258
   memcpy(reinterpret_cast<uint8_t*>(to_ref) + kObjectHeaderSize,
          reinterpret_cast<const uint8_t*>(from_ref) + kObjectHeaderSize,
          obj_size - kObjectHeaderSize);
+
+  to_ref->SetFLUIDFlags(from_ref->GetFLUIDFlags(false), false);
+  to_ref->SetObjectId(from_ref->GetObjectId(false), false);
 
   // Attempt to install the forward pointer. This is in a loop as the
   // lock word atomic write can fail.

@@ -101,6 +101,11 @@
 
 namespace art {
 
+const bool kDebugFLUID = true;
+const bool kStackDebugFLUID = false;
+Mutex* g_fluid_mutex = new Mutex("FLUID GC lock", kLockLevelCount, true);
+bool checking_call_stack = false;
+
 using android::base::StringAppendV;
 using android::base::StringPrintf;
 
@@ -2583,6 +2588,28 @@ template jobject Thread::CreateInternalStackTrace<false>(
 template jobject Thread::CreateInternalStackTrace<true>(
     const ScopedObjectAccessAlreadyRunnable& soa) const;
 
+struct FLUIDStackVisitor : public StackVisitor {
+  FLUIDStackVisitor(Thread* thread, Context* context)
+      REQUIRES_SHARED(Locks::mutator_lock_)
+      : StackVisitor(thread, context, StackVisitor::StackWalkKind::kIncludeInlinedFrames){}
+
+  virtual bool VisitFrame() NO_THREAD_SAFETY_ANALYSIS {
+    return true;
+  }
+};
+
+int Thread::CheckCallStack(uint32_t callee_flags) const {
+  std::unique_ptr<Context> context(Context::Create());
+  FLUIDStackVisitor visitor(const_cast<Thread*>(this), context.get());
+  return visitor.CheckCallStack(callee_flags);
+}
+
+int Thread::PrintCallStack() const {
+  std::unique_ptr<Context> context(Context::Create());
+  FLUIDStackVisitor visitor(const_cast<Thread*>(this), context.get());
+  return visitor.PrintCallStack();
+}
+
 bool Thread::IsExceptionThrownByCurrentMethod(ObjPtr<mirror::Throwable> exception) const {
   // Only count the depth since we do not pass a stack frame array as an argument.
   FetchStackTraceVisitor count_visitor(const_cast<Thread*>(this));
@@ -3276,22 +3303,22 @@ class ReferenceMapVisitor : public StackVisitor {
 
       T vreg_info(m, code_info, encoding, map, visitor_);
 
-      // Visit stack entries that hold pointers.
-      const size_t number_of_bits = code_info.GetNumberOfStackMaskBits(encoding);
-      BitMemoryRegion stack_mask = code_info.GetStackMaskOf(encoding, map);
-      for (size_t i = 0; i < number_of_bits; ++i) {
-        if (stack_mask.LoadBit(i)) {
-          auto* ref_addr = vreg_base + i;
-          mirror::Object* ref = ref_addr->AsMirrorPtr();
-          if (ref != nullptr) {
-            mirror::Object* new_ref = ref;
-            vreg_info.VisitStack(&new_ref, i, this);
-            if (ref != new_ref) {
-              ref_addr->Assign(new_ref);
-           }
-          }
-        }
-      }
+			// Visit stack entries that hold pointers.
+			const size_t number_of_bits = code_info.GetNumberOfStackMaskBits(encoding);
+			BitMemoryRegion stack_mask = code_info.GetStackMaskOf(encoding, map);
+			for (size_t i = 0; i < number_of_bits; ++i) {
+				if (stack_mask.LoadBit(i)) {
+					auto* ref_addr = vreg_base + i;
+					mirror::Object* ref = ref_addr->AsMirrorPtr();
+					if (ref != nullptr) {
+						mirror::Object* new_ref = ref;
+						vreg_info.VisitStack(&new_ref, i, this);
+						if (ref != new_ref) {
+							ref_addr->Assign(new_ref);
+						}
+					}
+				}
+			}
       // Visit callee-save registers that hold pointers.
       uint32_t register_mask = code_info.GetRegisterMaskOf(encoding, map);
       for (size_t i = 0; i < BitSizeOf<uint32_t>(); ++i) {

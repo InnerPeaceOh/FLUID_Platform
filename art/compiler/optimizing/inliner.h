@@ -21,6 +21,7 @@
 #include "invoke_type.h"
 #include "optimization.h"
 #include "jit/profile_compilation_info.h"
+#include <sys/utsname.h>
 
 namespace art {
 
@@ -62,6 +63,10 @@ class HInliner : public HOptimization {
   void Run() OVERRIDE;
 
   static constexpr const char* kInlinerPassName = "inliner";
+
+  bool is_runtime_ = false;
+  mirror::Class* view_clazz_;
+
 
  private:
   enum InlineCacheType {

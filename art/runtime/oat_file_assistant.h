@@ -51,7 +51,7 @@ class OatFileAssistant {
   // The default compile filter to use when optimizing dex file at load time if they
   // are out of date.
   static const CompilerFilter::Filter kDefaultCompilerFilterForDexLoading =
-      CompilerFilter::kQuicken;
+      CompilerFilter::kEverything;
 
   enum DexOptNeeded {
     // No dexopt should (or can) be done to update the apk/jar.

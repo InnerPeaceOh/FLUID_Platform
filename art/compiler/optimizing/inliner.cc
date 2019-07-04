@@ -123,66 +123,7 @@ void HInliner::UpdateInliningBudget() {
   }
 }
 
-void HInliner::Run() {
-  if (graph_->IsDebuggable()) {
-    // For simplicity, we currently never inline when the graph is debuggable. This avoids
-    // doing some logic in the runtime to discover if a method could have been inlined.
-    return;
-  }
-
-  // Initialize the number of instructions for the method being compiled. Recursive calls
-  // to HInliner::Run have already updated the instruction count.
-  if (outermost_graph_ == graph_) {
-    total_number_of_instructions_ = CountNumberOfInstructions(graph_);
-  }
-
-  UpdateInliningBudget();
-  DCHECK_NE(total_number_of_instructions_, 0u);
-  DCHECK_NE(inlining_budget_, 0u);
-
-  // If we're compiling with a core image (which is only used for
-  // test purposes), honor inlining directives in method names:
-  // - if a method's name contains the substring "$inline$", ensure
-  //   that this method is actually inlined;
-  // - if a method's name contains the substring "$noinline$", do not
-  //   inline that method.
-  // We limit this to AOT compilation, as the JIT may or may not inline
-  // depending on the state of classes at runtime.
-  const bool honor_inlining_directives =
-      IsCompilingWithCoreImage() && Runtime::Current()->IsAotCompiler();
-
-  // Keep a copy of all blocks when starting the visit.
-  ArenaVector<HBasicBlock*> blocks = graph_->GetReversePostOrder();
-  DCHECK(!blocks.empty());
-  // Because we are changing the graph when inlining,
-  // we just iterate over the blocks of the outer method.
-  // This avoids doing the inlining work again on the inlined blocks.
-  for (HBasicBlock* block : blocks) {
-    for (HInstruction* instruction = block->GetFirstInstruction(); instruction != nullptr;) {
-      HInstruction* next = instruction->GetNext();
-      HInvoke* call = instruction->AsInvoke();
-      // As long as the call is not intrinsified, it is worth trying to inline.
-      if (call != nullptr && call->GetIntrinsic() == Intrinsics::kNone) {
-        if (honor_inlining_directives) {
-          // Debugging case: directives in method names control or assert on inlining.
-          std::string callee_name = outer_compilation_unit_.GetDexFile()->PrettyMethod(
-              call->GetDexMethodIndex(), /* with_signature */ false);
-          // Tests prevent inlining by having $noinline$ in their method names.
-          if (callee_name.find("$noinline$") == std::string::npos) {
-            if (!TryInline(call)) {
-              bool should_have_inlined = (callee_name.find("$inline$") != std::string::npos);
-              CHECK(!should_have_inlined) << "Could not inline " << callee_name;
-            }
-          }
-        } else {
-          // Normal case: try to inline.
-          TryInline(call);
-        }
-      }
-      instruction = next;
-    }
-  }
-}
+void HInliner::Run() {}
 
 static bool IsMethodOrDeclaringClassFinal(ArtMethod* method)
     REQUIRES_SHARED(Locks::mutator_lock_) {
@@ -410,6 +351,7 @@ bool HInliner::TryInline(HInvoke* invoke_instruction) {
     LOG_FAIL_NO_STAT() << "Not inlining a String.<init> method";
     return false;
   }
+
   ArtMethod* actual_method = nullptr;
 
   if (invoke_instruction->IsInvokeStaticOrDirect()) {

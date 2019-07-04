@@ -146,9 +146,9 @@ ADD_TEST_EQ(SHADOWFRAME_VREGS_OFFSET,
             static_cast<int32_t>(art::ShadowFrame::VRegsOffset()))
 
 #if defined(USE_BROOKS_READ_BARRIER)
-#define MIRROR_OBJECT_HEADER_SIZE 16
+#define MIRROR_OBJECT_HEADER_SIZE 24
 #else
-#define MIRROR_OBJECT_HEADER_SIZE 8
+#define MIRROR_OBJECT_HEADER_SIZE 16
 #endif
 ADD_TEST_EQ(size_t(MIRROR_OBJECT_HEADER_SIZE), sizeof(art::mirror::Object))
 

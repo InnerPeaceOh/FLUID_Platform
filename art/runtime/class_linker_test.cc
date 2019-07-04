@@ -150,6 +150,10 @@ class ClassLinkerTest : public CommonRuntimeTest {
                  "shadow$_klass_");
     EXPECT_STREQ(JavaLangObject->GetInstanceField(1)->GetName(),
                  "shadow$_monitor_");
+    EXPECT_STREQ(JavaLangObject->GetInstanceField(2)->GetName(),
+                 "zFLUIDFlags");
+    EXPECT_STREQ(JavaLangObject->GetInstanceField(3)->GetName(),
+                 "zObjectId");
     if (kUseBrooksReadBarrier) {
       EXPECT_STREQ(JavaLangObject->GetInstanceField(2)->GetName(),
                    "shadow$_x_rb_ptr_");
@@ -564,6 +568,8 @@ struct ObjectOffsets : public CheckOffsets<mirror::Object> {
   ObjectOffsets() : CheckOffsets<mirror::Object>(false, "Ljava/lang/Object;") {
     addOffset(OFFSETOF_MEMBER(mirror::Object, klass_), "shadow$_klass_");
     addOffset(OFFSETOF_MEMBER(mirror::Object, monitor_), "shadow$_monitor_");
+    addOffset(OFFSETOF_MEMBER(mirror::Object, z_fluid_flags_), "zFLUIDFlags");
+    addOffset(OFFSETOF_MEMBER(mirror::Object, z_object_id_), "zObjectId");
 #ifdef USE_BROOKS_READ_BARRIER
     addOffset(OFFSETOF_MEMBER(mirror::Object, x_rb_ptr_), "shadow$_x_rb_ptr_");
     addOffset(OFFSETOF_MEMBER(mirror::Object, x_xpadding_), "shadow$_x_xpadding_");

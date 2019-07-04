@@ -24,6 +24,10 @@
 #include "base/mutex.h"
 #include "quick/quick_method_frame_info.h"
 
+#if defined(__aarch64__) || defined(__arm__)
+#include "fluid/gadget.h"
+#endif
+
 namespace art {
 
 namespace mirror {
@@ -142,6 +146,12 @@ class StackVisitor {
   template <CountTransitions kCount = CountTransitions::kYes>
   void WalkStack(bool include_transitions = false)
       REQUIRES_SHARED(Locks::mutator_lock_);
+
+  int CheckCallStack(uint32_t callee_flags) 
+		REQUIRES_SHARED(Locks::mutator_lock_);
+
+  int PrintCallStack(bool include_transitions = false) 
+		REQUIRES_SHARED(Locks::mutator_lock_);
 
   Thread* GetThread() const {
     return thread_;
@@ -315,7 +325,8 @@ class StackVisitor {
   size_t current_inlining_depth_;
 
  protected:
-  Context* const context_;
+  //Context* const context_;
+  Context* context_;
   const bool check_suspended_;
 };
 

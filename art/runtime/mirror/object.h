@@ -68,7 +68,7 @@ class Throwable;
 static constexpr bool kCheckFieldAssignments = false;
 
 // Size of Object.
-static constexpr uint32_t kObjectHeaderSize = kUseBrooksReadBarrier ? 16 : 8;
+static constexpr uint32_t kObjectHeaderSize = kUseBrooksReadBarrier ? 24 : 16;
 
 // C++ mirror of java.lang.Object
 class MANAGED LOCKABLE Object {
@@ -158,6 +158,18 @@ class MANAGED LOCKABLE Object {
   bool CasLockWordWeakRelease(LockWord old_val, LockWord new_val)
       REQUIRES_SHARED(Locks::mutator_lock_);
   uint32_t GetLockOwnerThreadId();
+
+  template<VerifyObjectFlags kVerifyFlags = kDefaultVerifyFlags>
+  uint32_t GetFLUIDFlags(bool as_volatile) REQUIRES_SHARED(Locks::mutator_lock_);
+
+  template<VerifyObjectFlags kVerifyFlags = kDefaultVerifyFlags>
+  void SetFLUIDFlags(uint32_t new_val, bool as_volatile) REQUIRES_SHARED(Locks::mutator_lock_);
+
+  template<VerifyObjectFlags kVerifyFlags = kDefaultVerifyFlags>
+  uint32_t GetObjectId(bool as_volatile) REQUIRES_SHARED(Locks::mutator_lock_);
+
+  template<VerifyObjectFlags kVerifyFlags = kDefaultVerifyFlags>
+  void SetObjectId(uint32_t new_val, bool as_volatile) REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Try to enter the monitor, returns non null if we succeeded.
   mirror::Object* MonitorTryEnter(Thread* self)
@@ -710,6 +722,8 @@ class MANAGED LOCKABLE Object {
   HeapReference<Class> klass_;
   // Monitor and hash code information.
   uint32_t monitor_;
+  uint32_t z_fluid_flags_;
+  uint32_t z_object_id_;
 
 #ifdef USE_BROOKS_READ_BARRIER
   // Note names use a 'x' prefix and the x_rb_ptr_ is of type int

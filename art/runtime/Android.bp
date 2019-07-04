@@ -258,6 +258,9 @@ cc_defaults {
         "entrypoints/quick/quick_thread_entrypoints.cc",
         "entrypoints/quick/quick_throw_entrypoints.cc",
         "entrypoints/quick/quick_trampoline_entrypoints.cc",
+		"fluid/gadget.cc",
+		"fluid/signature.cc",
+		"fluid/java_type.cc",
     ],
 
     arch: {
@@ -275,6 +278,7 @@ cc_defaults {
                 "arch/arm/quick_entrypoints_cc_arm.cc",
                 "arch/arm/thread_arm.cc",
                 "arch/arm/fault_handler_arm.cc",
+				"fluid/arch/arm/gadget_arm.S",
             ],
         },
         arm64: {
@@ -289,6 +293,7 @@ cc_defaults {
                 "arch/arm64/thread_arm64.cc",
                 "monitor_pool.cc",
                 "arch/arm64/fault_handler_arm64.cc",
+				"fluid/arch/arm64/gadget_arm64.S",
             ],
         },
         x86: {

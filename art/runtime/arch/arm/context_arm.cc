@@ -58,6 +58,34 @@ void ArmContext::FillCalleeSaves(uint8_t* frame, const QuickMethodFrameInfo& fra
   DCHECK_EQ(spill_pos, POPCOUNT(frame_info.CoreSpillMask()) + POPCOUNT(frame_info.FpSpillMask()));
 }
 
+// This method is dependent on gadget_arm64.S. 
+void ArmContext::FillCalleeSavesForFLUID(uint8_t* frame) {
+	gprs_[11] = reinterpret_cast<uintptr_t*>(frame - 3 * sizeof(void*));
+	gprs_[10] = reinterpret_cast<uintptr_t*>(frame - 4 * sizeof(void*));
+	gprs_[8] = reinterpret_cast<uintptr_t*>(frame - 6 * sizeof(void*));
+	gprs_[7] = reinterpret_cast<uintptr_t*>(frame - 7 * sizeof(void*));
+	gprs_[6] = reinterpret_cast<uintptr_t*>(frame - 8 * sizeof(void*));
+	gprs_[5] = reinterpret_cast<uintptr_t*>(frame - 9 * sizeof(void*));
+	gprs_[4] = reinterpret_cast<uintptr_t*>(frame - 10 * sizeof(void*));
+
+	fprs_[31] = reinterpret_cast<uintptr_t*>(frame - 15 * sizeof(void*));
+	fprs_[30] = reinterpret_cast<uintptr_t*>(frame - 16 * sizeof(void*));
+	fprs_[29] = reinterpret_cast<uintptr_t*>(frame - 17 * sizeof(void*));
+	fprs_[28] = reinterpret_cast<uintptr_t*>(frame - 18 * sizeof(void*));
+	fprs_[27] = reinterpret_cast<uintptr_t*>(frame - 19 * sizeof(void*));
+	fprs_[26] = reinterpret_cast<uintptr_t*>(frame - 20 * sizeof(void*));
+	fprs_[25] = reinterpret_cast<uintptr_t*>(frame - 21 * sizeof(void*));
+	fprs_[24] = reinterpret_cast<uintptr_t*>(frame - 22 * sizeof(void*));
+	fprs_[23] = reinterpret_cast<uintptr_t*>(frame - 23 * sizeof(void*));
+	fprs_[22] = reinterpret_cast<uintptr_t*>(frame - 24 * sizeof(void*));
+	fprs_[21] = reinterpret_cast<uintptr_t*>(frame - 25 * sizeof(void*));
+	fprs_[20] = reinterpret_cast<uintptr_t*>(frame - 26 * sizeof(void*));
+	fprs_[19] = reinterpret_cast<uintptr_t*>(frame - 27 * sizeof(void*));
+	fprs_[18] = reinterpret_cast<uintptr_t*>(frame - 28 * sizeof(void*));
+	fprs_[17] = reinterpret_cast<uintptr_t*>(frame - 29 * sizeof(void*));
+	fprs_[16] = reinterpret_cast<uintptr_t*>(frame - 30 * sizeof(void*));
+}
+
 void ArmContext::SetGPR(uint32_t reg, uintptr_t value) {
   DCHECK_LT(reg, static_cast<uint32_t>(kNumberOfCoreRegisters));
   DCHECK(IsAccessibleGPR(reg));

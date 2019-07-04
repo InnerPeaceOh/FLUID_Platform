@@ -77,6 +77,28 @@ inline void Object::SetLockWord(LockWord new_val, bool as_volatile) {
   }
 }
 
+template<VerifyObjectFlags kVerifyFlags>
+inline void Object::SetFLUIDFlags(uint32_t new_val, bool as_volatile) {
+  if (as_volatile) {
+    SetField32Volatile<false, false, kVerifyFlags>(
+        OFFSET_OF_OBJECT_MEMBER(Object, z_fluid_flags_), new_val);
+  } else {
+    SetField32<false, false, kVerifyFlags>(
+        OFFSET_OF_OBJECT_MEMBER(Object, z_fluid_flags_), new_val);
+  }
+}
+
+template<VerifyObjectFlags kVerifyFlags>
+inline void Object::SetObjectId(uint32_t new_val, bool as_volatile) {
+  if (as_volatile) {
+    SetField32Volatile<false, false, kVerifyFlags>(
+        OFFSET_OF_OBJECT_MEMBER(Object, z_object_id_), new_val);
+  } else {
+    SetField32<false, false, kVerifyFlags>(
+        OFFSET_OF_OBJECT_MEMBER(Object, z_object_id_), new_val);
+  }
+}
+
 inline bool Object::CasLockWordWeakSequentiallyConsistent(LockWord old_val, LockWord new_val) {
   // Force use of non-transactional mode and do not check.
   return CasFieldWeakSequentiallyConsistent32<false, false>(

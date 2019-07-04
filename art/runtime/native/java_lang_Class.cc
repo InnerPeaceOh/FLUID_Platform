@@ -45,6 +45,16 @@
 #include "utf.h"
 #include "well_known_classes.h"
 
+#if defined(__aarch64__) || defined(__arm__)
+#include "jni.h"
+#include "fluid/gadget.h"
+#include "fluid/signature.h"
+#include "fluid/java_type.h"
+#include <unordered_map>
+#include <fstream>
+#include <sys/stat.h>
+#endif
+
 namespace art {
 
 ALWAYS_INLINE static inline ObjPtr<mirror::Class> DecodeClass(
@@ -753,6 +763,189 @@ static jobject Class_newInstance(JNIEnv* env, jobject javaThis) {
   return soa.AddLocalReference<jobject>(receiver.Get());
 }
 
+#if defined(__aarch64__) || defined(__arm__)
+static void Class_initRpcGadget(JNIEnv* env, jclass) {
+  jsize vm_count;
+  JNI_GetCreatedJavaVMs(&fluid::g_jvm, 1, &vm_count);
+
+  fluid::BundleMap* bundle_map = new(std::nothrow)fluid::BundleMap();
+  if (!bundle_map)
+	  LOG(FATAL) << "Class_initRpcGadget(), Allocate map for MethodBundleNative.";
+  fluid::g_bundle_map = bundle_map;
+
+  jclass object_clazz = env->FindClass("java/lang/Object");
+  jobject object_clazz_ref = env->NewGlobalRef(reinterpret_cast<jobject>(object_clazz));
+  fluid::g_object_clazz = reinterpret_cast<jclass>(object_clazz_ref);
+
+  jclass view_clazz = env->FindClass("android/view/View");
+  jobject view_clazz_ref = env->NewGlobalRef(reinterpret_cast<jobject>(view_clazz));
+  fluid::g_view_clazz = reinterpret_cast<jclass>(view_clazz_ref);
+
+  jclass fluid_manager_clazz = env->FindClass("android/fluid/FLUIDManager");
+  fluid::g_rpc_translation = env->GetMethodID(fluid_manager_clazz, "rpcTranslation", 
+	"(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)V"); 
+  fluid::g_rpc_caching = env->GetMethodID(fluid_manager_clazz, "rpcCaching", 
+	"(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)V"); 
+  fluid::g_ret_caching = env->GetMethodID(fluid_manager_clazz, "returnCaching", 
+	"(ILjava/lang/String;Ljava/lang/String;Ljava/lang/Object;)V"); 
+  fluid::g_cache_void = env->GetMethodID(fluid_manager_clazz, "executeCacheWithVoid", 
+	"(ILjava/lang/String;Ljava/lang/String;)V"); 
+  fluid::g_cache_bool = env->GetMethodID(fluid_manager_clazz, "executeCacheWithBool", 
+	"(ILjava/lang/String;Ljava/lang/String;)Z"); 
+  fluid::g_cache_char = env->GetMethodID(fluid_manager_clazz, "executeCacheWithChar", 
+	"(ILjava/lang/String;Ljava/lang/String;)C"); 
+  fluid::g_cache_byte = env->GetMethodID(fluid_manager_clazz, "executeCacheWithByte", 
+	"(ILjava/lang/String;Ljava/lang/String;)B"); 
+  fluid::g_cache_short = env->GetMethodID(fluid_manager_clazz, "executeCacheWithShort", 
+	"(ILjava/lang/String;Ljava/lang/String;)S"); 
+  fluid::g_cache_int = env->GetMethodID(fluid_manager_clazz, "executeCacheWithInt", 
+	"(ILjava/lang/String;Ljava/lang/String;)I"); 
+  fluid::g_cache_long = env->GetMethodID(fluid_manager_clazz, "executeCacheWithLong", 
+	"(ILjava/lang/String;Ljava/lang/String;)J"); 
+  fluid::g_cache_float = env->GetMethodID(fluid_manager_clazz, "executeCacheWithFloat", 
+	"(ILjava/lang/String;Ljava/lang/String;)F"); 
+  fluid::g_cache_double = env->GetMethodID(fluid_manager_clazz, "executeCacheWithDouble", 
+	"(ILjava/lang/String;Ljava/lang/String;)D"); 
+  fluid::g_cache_object = env->GetMethodID(fluid_manager_clazz, "executeCacheWithObject", 
+	"(ILjava/lang/String;Ljava/lang/String;)Ljava/lang/Object;"); 
+
+  fluid::g_primitive_map = new(std::nothrow)fluid::PrimitiveMap();
+  fluid::PrimitiveTypeWrapper::LoadWrappers();
+
+  fluid::g_debug_ofs.open("/data/local/tmp/rpc_installed_methods", std::ofstream::out);
+  fluid::g_debug_ofs.close();
+  chmod("/data/local/tmp/rpc_installed_methods", 0666);
+}
+
+static void Class_setFLUIDManagerObj(JNIEnv* env, jclass, jobject managerObj) {
+  fluid::g_fluid_manager = (jobject) env->NewGlobalRef(managerObj);
+}
+
+static void Class_setRpcGadget(JNIEnv* env, jclass, jobject clazzObj, jstring methodName, jstring methodSig) {
+  ScopedFastNativeObjectAccess soa(env);
+  StackHandleScope<2> hs(soa.Self());
+  Handle<mirror::Class> klass = hs.NewHandle(DecodeClass(soa, clazzObj));
+  jboolean is_copy = JNI_FALSE;
+  const char* method_name = env->GetStringUTFChars(methodName, &is_copy);
+  const char* method_sig = env->GetStringUTFChars(methodSig, &is_copy);
+  
+  if (strcmp(method_name, "serializeUi") == 0 
+		  || strcmp(method_name, "restoreUi") == 0
+		  || strcmp(method_name, "rpcTranslation") == 0
+		  || strcmp(method_name, "executeRpc") == 0
+		  || strcmp(method_name, "dispatchIMEInput") == 0
+		  || strcmp(method_name, "flattenForFLUID") == 0
+		  || strcmp(method_name, "unflattenForFLUID") == 0
+		  || strcmp(method_name, "toString") == 0
+		  || strcmp(method_name, "draw") == 0
+		  || strcmp(method_name, "layout") == 0
+		  || strcmp(method_name, "measure") == 0
+		  || strcmp(method_name, "onDraw") == 0
+		  || strcmp(method_name, "onLayout") == 0
+		  || strcmp(method_name, "onMeasure") == 0
+		  || strcmp(method_name, "dispatchGetDisplayList") == 0
+		  || strcmp(method_name, "updateDisplayListIfDirty") == 0
+		  || strcmp(method_name, "dispatchDetachedFromWindowForFLUID") == 0
+		  || strcmp(method_name, "clearLayoutParamsForFLUID") == 0
+		  || strcmp(method_name, "resetLayoutParamsForFLUID") == 0
+		  || strcmp(method_name, "setScaleForFLUID") == 0
+		  || strcmp(method_name, "setVisibility") == 0
+		  || strcmp(method_name, "invalidate") == 0
+		  || strcmp(method_name, "getSystemService") == 0
+		  || strcmp(method_name, "getId") == 0
+		  || strcmp(method_name, "indexOfChild") == 0
+//		  || strncmp(method_name, "get", 3) == 0
+//		  || strncmp(method_name, "can", 3) == 0
+//		  || strncmp(method_name, "has", 3) == 0
+//		  || strncmp(method_name, "is", 2) == 0
+//		  || strncmp(method_name, "on", 2) == 0
+//		  || strncmp(method_name, "resolve", 7) == 0
+//		  || strcmp(method_name, "computeScroll") == 0
+//		  || strcmp(method_name, "performClick") == 0
+//		  || strcmp(method_name, "generateLayoutParams") == 0
+//		  || strcmp(method_name, "focusSearch") == 0
+	 ) {
+	  return;
+  }
+
+  char valid_method_sig[1024];
+  snprintf(valid_method_sig, 1024, "%s", method_sig);
+  char* ptr = valid_method_sig;
+  while (*ptr) {
+	  if (*ptr == '.')
+		  *ptr = '/';
+	  ptr++;
+  }
+
+  // Get the entry point (reference) to the target method
+  jclass clazz = reinterpret_cast<jclass>(clazzObj);
+  jmethodID meth_id = env->GetMethodID(clazz, method_name, valid_method_sig);
+
+  ArtMethod *method = reinterpret_cast<ArtMethod*>(meth_id);
+  if (method == NULL) 
+	  LOG(FATAL) << "error! method is null";
+  const void* origin_entry = method->GetEntryPointFromQuickCompiledCode();
+  const void* gadget_entry = reinterpret_cast<void*>(fluid::RpcGadgetTrampoline);
+
+  mirror::Class* declaring_class = method->GetDeclaringClass();
+  if (klass.Get() != declaring_class) 
+	  return;
+
+  fluid::MethodSignatureParser parser(valid_method_sig);
+  parser.Parse();
+  const std::vector<char>& type_inputs = parser.GetInputType();
+  char type_output = parser.GetOutputType();
+  jobject g_ref = env->NewGlobalRef(reinterpret_cast<jobject>(clazz));
+  jclass g_clazz = reinterpret_cast<jclass>(g_ref);
+  fluid::MethodBundleNative* bundle_native = new(std::nothrow) fluid::MethodBundleNative(
+		  method_name, method_sig, type_inputs, type_output, g_clazz, 
+		  (uint64_t)origin_entry, (uint64_t)gadget_entry);
+  if (!bundle_native)
+	  LOG(FATAL) << "Allocate MethodBundleNative for " << method_name << " (" << valid_method_sig << ")";
+  fluid::g_bundle_map->insert(std::make_pair(meth_id, bundle_native));
+  method->SetEntryPointFromQuickCompiledCode(gadget_entry);
+  method->SetOriginalEntryPoint(origin_entry);
+//  if (kDebugFLUID) LOG(INFO) << "Class_setRpcGadget(), entry_point_from_api = " << method->GetEntryPointFromQuickCompiledCode() 
+//	  << ", origin_entry_point = " << method->GetOriginalEntryPoint()
+//	  << ", current_entry_point = " << method->GetCurrentEntryPoint();
+
+  fluid::g_debug_ofs.open("/data/local/tmp/rpc_installed_methods", std::ofstream::out | std::ofstream::app);
+  fluid::g_debug_ofs << getpid() << ", " << method << ", " << method->PrettyMethod() << ", " << method->GetCurrentEntryPoint() << ", " << method->GetOriginalEntryPoint() << std::endl;
+  fluid::g_debug_ofs.close();
+}
+
+static void Class_cancelRpcGadget(JNIEnv*, jclass) {
+  if (!fluid::g_bundle_map)
+	  return;
+  for (auto it = fluid::g_bundle_map->begin(); it != fluid::g_bundle_map->end(); it++) {
+	  jmethodID meth_id = it->first;
+	  fluid::MethodBundleNative* bundle_native = it->second;
+	  ArtMethod *method = reinterpret_cast<ArtMethod*>(meth_id);
+	  const void* entry_origin = method->GetOriginalEntryPoint();
+	  method->SetOriginalEntryPoint(0);
+	  method->SetEntryPointFromQuickCompiledCode(entry_origin);
+	  delete bundle_native;
+  }
+  fluid::g_bundle_map->clear();
+}
+#else
+static void Class_initRpcGadget(JNIEnv*, jclass) {
+  LOG(INFO) << "Class_initRpcGadget(), it's not aarch64 nor arm.";
+}
+
+static void Class_setFLUIDManagerObj(JNIEnv*, jclass, jobject) {
+  LOG(INFO) << "Class_setFLUIDManagerObj(), it's not aarch64 nor arm.";
+}
+
+static void Class_setRpcGadget(JNIEnv*, jclass, jobject, jstring, jstring) {
+  LOG(INFO) << "Class_setRpcGadget(), it's not aarch64 nor arm.";
+}
+
+static void Class_cancelRpcGadget(JNIEnv*, jobject) {
+  LOG(INFO) << "Class_cancelRpcGadget(), it's not aarch64 nor arm.";
+}
+#endif
+
 static JNINativeMethod gMethods[] = {
   FAST_NATIVE_METHOD(Class, classForName,
                 "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;"),
@@ -784,6 +977,10 @@ static JNINativeMethod gMethods[] = {
   FAST_NATIVE_METHOD(Class, isAnonymousClass, "()Z"),
   FAST_NATIVE_METHOD(Class, isDeclaredAnnotationPresent, "(Ljava/lang/Class;)Z"),
   FAST_NATIVE_METHOD(Class, newInstance, "()Ljava/lang/Object;"),
+  FAST_NATIVE_METHOD(Class, initRpcGadget, "()V"),
+  FAST_NATIVE_METHOD(Class, setFLUIDManagerObj, "(Ljava/lang/Object;)V"),
+  FAST_NATIVE_METHOD(Class, setRpcGadget, "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;)V"),
+  FAST_NATIVE_METHOD(Class, cancelRpcGadget, "()V"),
 };
 
 void register_java_lang_Class(JNIEnv* env) {

@@ -41,6 +41,24 @@
 #include "thread.h"
 #include "thread_list.h"
 
+// These values are dependent on gadget_arm64.S. 
+#if defined(__aarch64__)
+// The next address offset of 'blr' in .RpcTranslationGadget from RpcGadgetTrampoline.
+#define BLR_RET_ADDR_OFFSET_1	340
+// The next address offset of 'blr' in .ReturnCachingGadget from RpcGadgetTrampoline.
+#define BLR_RET_ADDR_OFFSET_2	520
+// The next address offset of 'blr' in .RpcCachingGadget from RpcGadgetTrampoline.
+#define BLR_RET_ADDR_OFFSET_3	952
+
+#elif defined(__arm__)
+// The next address offset of 'blx' in .RpcTranslationGadget from RpcGadgetTrampoline.
+#define BLR_RET_ADDR_OFFSET_1	408
+// The next address offset of 'blx' in .ReturnCachingGadget from RpcGadgetTrampoline.
+#define BLR_RET_ADDR_OFFSET_2	604
+// The next address offset of 'blx' in .RpcCachingGadget from RpcGadgetTrampoline.
+#define BLR_RET_ADDR_OFFSET_3	1124
+#endif
+
 namespace art {
 
 using android::base::StringPrintf;
@@ -754,156 +772,807 @@ QuickMethodFrameInfo StackVisitor::GetCurrentQuickFrameInfo() const {
   return QuickMethodFrameInfo(frame_size, callee_info.CoreSpillMask(), callee_info.FpSpillMask());
 }
 
+#if defined(__aarch64__) || defined(__arm__)
 template <StackVisitor::CountTransitions kCount>
 void StackVisitor::WalkStack(bool include_transitions) {
-  if (check_suspended_) {
-    DCHECK(thread_ == Thread::Current() || thread_->IsSuspended());
-  }
-  CHECK_EQ(cur_depth_, 0U);
-  bool exit_stubs_installed = Runtime::Current()->GetInstrumentation()->AreExitStubsInstalled();
-  uint32_t instrumentation_stack_depth = 0;
-  size_t inlined_frames_count = 0;
+	if (check_suspended_) {
+		DCHECK(thread_ == Thread::Current() || thread_->IsSuspended());
+	}
+	CHECK_EQ(cur_depth_, 0U);
+	bool exit_stubs_installed = Runtime::Current()->GetInstrumentation()->AreExitStubsInstalled();
+	uint32_t instrumentation_stack_depth = 0;
+	size_t inlined_frames_count = 0;
 
-  for (const ManagedStack* current_fragment = thread_->GetManagedStack();
-       current_fragment != nullptr; current_fragment = current_fragment->GetLink()) {
-    cur_shadow_frame_ = current_fragment->GetTopShadowFrame();
-    cur_quick_frame_ = current_fragment->GetTopQuickFrame();
-    cur_quick_frame_pc_ = 0;
-    cur_oat_quick_method_header_ = nullptr;
+	int iter_count = 0;
+	bool exist_fluid_caller = (thread_->fluid_caller_frame_stack_.size() != 0);
+	std::vector<ArtMethod**>::reverse_iterator caller_rit = thread_->fluid_caller_frame_stack_.rbegin();
+	std::vector<void*>::reverse_iterator ret_rit = thread_->fluid_ret_addrs_.rbegin();
+	ArtMethod** caller_frame = nullptr;
 
-    if (cur_quick_frame_ != nullptr) {  // Handle quick stack frames.
-      // Can't be both a shadow and a quick fragment.
-      DCHECK(current_fragment->GetTopShadowFrame() == nullptr);
-      ArtMethod* method = *cur_quick_frame_;
-      while (method != nullptr) {
-        cur_oat_quick_method_header_ = method->GetOatQuickMethodHeader(cur_quick_frame_pc_);
-        SanityCheckFrame();
+	if (kStackDebugFLUID && exist_fluid_caller && !checking_call_stack) {
+		LOG(INFO) << "WalkStack() =====================START==========================";
+		LOG(INFO) << "WalkStack()"
+			<< ", fluid_caller_frame_stack_ size = " << thread_->fluid_caller_frame_stack_.size()
+			<< ", fluid_ret_addrs_ size = " << thread_->fluid_ret_addrs_.size()
+			<< ", RpcGadgetTrampoline = " << reinterpret_cast<void*>(fluid::RpcGadgetTrampoline)
+			<< ", current thread = " << Thread::Current();
+	}
 
-        if ((walk_kind_ == StackWalkKind::kIncludeInlinedFrames)
-            && (cur_oat_quick_method_header_ != nullptr)
-            && cur_oat_quick_method_header_->IsOptimized()) {
-          CodeInfo code_info = cur_oat_quick_method_header_->GetOptimizedCodeInfo();
-          CodeInfoEncoding encoding = code_info.ExtractEncoding();
-          uint32_t native_pc_offset =
-              cur_oat_quick_method_header_->NativeQuickPcOffset(cur_quick_frame_pc_);
-          StackMap stack_map = code_info.GetStackMapForNativePcOffset(native_pc_offset, encoding);
-          if (stack_map.IsValid() && stack_map.HasInlineInfo(encoding.stack_map.encoding)) {
-            InlineInfo inline_info = code_info.GetInlineInfoOf(stack_map, encoding);
-            DCHECK_EQ(current_inlining_depth_, 0u);
-            for (current_inlining_depth_ = inline_info.GetDepth(encoding.inline_info.encoding);
-                 current_inlining_depth_ != 0;
-                 --current_inlining_depth_) {
-              bool should_continue = VisitFrame();
-              if (UNLIKELY(!should_continue)) {
-                return;
-              }
-              cur_depth_++;
-              inlined_frames_count++;
-            }
-          }
-        }
+	for (const ManagedStack* current_fragment = thread_->GetManagedStack();
+			current_fragment != nullptr; current_fragment = current_fragment->GetLink()) {
+		cur_shadow_frame_ = current_fragment->GetTopShadowFrame();
+		cur_quick_frame_ = current_fragment->GetTopQuickFrame();
+		cur_quick_frame_pc_ = 0;
+		cur_oat_quick_method_header_ = nullptr;
+		if (kStackDebugFLUID && exist_fluid_caller && !checking_call_stack) {
+			LOG(INFO) << "WalkStack()"
+				<< ", iteration count = " << iter_count++
+				<< ", current_fragment = " << current_fragment
+				<< ", cur_quick_frame_ = " << (void*)cur_quick_frame_
+				<< ", next_fragment = " << current_fragment->GetLink();
+			if (current_fragment->GetLink()) {
+				ArtMethod** next_fragment_qf = current_fragment->GetLink()->GetTopQuickFrame();
+				LOG(INFO) << "WalkStack(), quick_frame of next_fragment = " << next_fragment_qf;
+			}
+		}
 
-        bool should_continue = VisitFrame();
-        if (UNLIKELY(!should_continue)) {
-          return;
-        }
+		if (cur_quick_frame_ != nullptr) {  // Handle quick stack frames.
+			// Can't be both a shadow and a quick fragment.
+			DCHECK(current_fragment->GetTopShadowFrame() == nullptr);
+			ArtMethod* method = *cur_quick_frame_;
+			while (method != nullptr) {
+				if (exist_fluid_caller && cur_quick_frame_ == *caller_rit) {
+					caller_frame = *caller_rit++;
+					uint8_t* stack_addr_for_ret = 
+						reinterpret_cast<uint8_t*>(caller_frame) - sizeof(void*);
+					cur_quick_frame_pc_ = *reinterpret_cast<uintptr_t*>(stack_addr_for_ret);
+					if (cur_quick_frame_pc_ == reinterpret_cast<uintptr_t>(*ret_rit))
+						ret_rit++;
+					if (context_ != nullptr) 
+						context_->FillCalleeSavesForFLUID(reinterpret_cast<uint8_t*>(cur_quick_frame_));
+				}
+				if (kStackDebugFLUID && exist_fluid_caller && !checking_call_stack) {
+					LOG(INFO) << "WalkStack()"
+						<< ", cur_quick_frame_ = " << (void*)cur_quick_frame_
+						<< ", caller_frame = " << caller_frame
+						<< ", cur_quick_frame_pc_ = " << (void*)cur_quick_frame_pc_;
+					LOG(INFO) << "WalkStack()"
+						<< ", method = " << method->PrettyMethod();
+				}
+				cur_oat_quick_method_header_ = method->GetOatQuickMethodHeader(cur_quick_frame_pc_);
+				SanityCheckFrame();
 
-        QuickMethodFrameInfo frame_info = GetCurrentQuickFrameInfo();
-        if (context_ != nullptr) {
-          context_->FillCalleeSaves(reinterpret_cast<uint8_t*>(cur_quick_frame_), frame_info);
-        }
-        // Compute PC for next stack frame from return PC.
-        size_t frame_size = frame_info.FrameSizeInBytes();
-        size_t return_pc_offset = frame_size - sizeof(void*);
-        uint8_t* return_pc_addr = reinterpret_cast<uint8_t*>(cur_quick_frame_) + return_pc_offset;
-        uintptr_t return_pc = *reinterpret_cast<uintptr_t*>(return_pc_addr);
+				if ((walk_kind_ == StackWalkKind::kIncludeInlinedFrames)
+						&& (cur_oat_quick_method_header_ != nullptr)
+						&& cur_oat_quick_method_header_->IsOptimized()) {
+					CodeInfo code_info = cur_oat_quick_method_header_->GetOptimizedCodeInfo();
+					CodeInfoEncoding encoding = code_info.ExtractEncoding();
+					uint32_t native_pc_offset =
+						cur_oat_quick_method_header_->NativeQuickPcOffset(cur_quick_frame_pc_);
+					StackMap stack_map = code_info.GetStackMapForNativePcOffset(native_pc_offset, encoding);
+					if (stack_map.IsValid() && stack_map.HasInlineInfo(encoding.stack_map.encoding)) {
+						InlineInfo inline_info = code_info.GetInlineInfoOf(stack_map, encoding);
+						DCHECK_EQ(current_inlining_depth_, 0u);
+						for (current_inlining_depth_ = inline_info.GetDepth(encoding.inline_info.encoding);
+								current_inlining_depth_ != 0;
+								--current_inlining_depth_) {
+							bool should_continue = VisitFrame();
+							if (UNLIKELY(!should_continue)) {
+								return;
+							}
+							cur_depth_++;
+							inlined_frames_count++;
+						}
+					}
+				}
 
-        if (UNLIKELY(exit_stubs_installed)) {
-          // While profiling, the return pc is restored from the side stack, except when walking
-          // the stack for an exception where the side stack will be unwound in VisitFrame.
-          if (reinterpret_cast<uintptr_t>(GetQuickInstrumentationExitPc()) == return_pc) {
-            CHECK_LT(instrumentation_stack_depth, thread_->GetInstrumentationStack()->size());
-            const instrumentation::InstrumentationStackFrame& instrumentation_frame =
-                thread_->GetInstrumentationStack()->at(instrumentation_stack_depth);
-            instrumentation_stack_depth++;
-            if (GetMethod() ==
-                Runtime::Current()->GetCalleeSaveMethod(CalleeSaveType::kSaveAllCalleeSaves)) {
-              // Skip runtime save all callee frames which are used to deliver exceptions.
-            } else if (instrumentation_frame.interpreter_entry_) {
-              ArtMethod* callee =
-                  Runtime::Current()->GetCalleeSaveMethod(CalleeSaveType::kSaveRefsAndArgs);
-              CHECK_EQ(GetMethod(), callee) << "Expected: " << ArtMethod::PrettyMethod(callee)
-                                            << " Found: " << ArtMethod::PrettyMethod(GetMethod());
-            } else {
-              // Instrumentation generally doesn't distinguish between a method's obsolete and
-              // non-obsolete version.
-              CHECK_EQ(instrumentation_frame.method_->GetNonObsoleteMethod(),
-                       GetMethod()->GetNonObsoleteMethod())
-                  << "Expected: "
-                  << ArtMethod::PrettyMethod(instrumentation_frame.method_->GetNonObsoleteMethod())
-                  << " Found: " << ArtMethod::PrettyMethod(GetMethod()->GetNonObsoleteMethod());
-            }
-            if (num_frames_ != 0) {
-              // Check agreement of frame Ids only if num_frames_ is computed to avoid infinite
-              // recursion.
-              size_t frame_id = instrumentation::Instrumentation::ComputeFrameId(
-                  thread_,
-                  cur_depth_,
-                  inlined_frames_count);
-              CHECK_EQ(instrumentation_frame.frame_id_, frame_id);
-            }
-            return_pc = instrumentation_frame.return_pc_;
-          }
-        }
+				bool should_continue = VisitFrame();
+				if (UNLIKELY(!should_continue)) {
+					return;
+				}
 
-        cur_quick_frame_pc_ = return_pc;
-        uint8_t* next_frame = reinterpret_cast<uint8_t*>(cur_quick_frame_) + frame_size;
-        cur_quick_frame_ = reinterpret_cast<ArtMethod**>(next_frame);
+				QuickMethodFrameInfo frame_info = GetCurrentQuickFrameInfo();
+				if (context_ != nullptr) {
+					context_->FillCalleeSaves(reinterpret_cast<uint8_t*>(cur_quick_frame_), frame_info);
+				}
+				// Go to the next stack fragment.
+				if (strcmp(method->GetName(), "rpcTranslation") == 0)
+					break;
+				else if (strcmp(method->GetName(), "rpcCaching") == 0)
+					break;
+				else if (strcmp(method->GetName(), "returnCaching") == 0)
+					break;
+				else if (strncmp(method->GetName(), "executeCacheWith", 16) == 0) {
+					break;
+				}
 
-        if (kDebugStackWalk) {
-          LOG(INFO) << ArtMethod::PrettyMethod(method) << "@" << method << " size=" << frame_size
-              << std::boolalpha
-              << " optimized=" << (cur_oat_quick_method_header_ != nullptr &&
-                                   cur_oat_quick_method_header_->IsOptimized())
-              << " native=" << method->IsNative()
-              << std::noboolalpha
-              << " entrypoints=" << method->GetEntryPointFromQuickCompiledCode()
-              << "," << (method->IsNative() ? method->GetEntryPointFromJni() : nullptr)
-              << " next=" << *cur_quick_frame_;
-        }
+				// Compute PC for next stack frame from return PC.
+				size_t frame_size = frame_info.FrameSizeInBytes();
+				size_t return_pc_offset = frame_size - sizeof(void*);
+				uint8_t* return_pc_addr = reinterpret_cast<uint8_t*>(cur_quick_frame_) + return_pc_offset;
+				uintptr_t return_pc = *reinterpret_cast<uintptr_t*>(return_pc_addr);
 
-        if (kCount == CountTransitions::kYes || !method->IsRuntimeMethod()) {
-          cur_depth_++;
-        }
-        method = *cur_quick_frame_;
-      }
-    } else if (cur_shadow_frame_ != nullptr) {
-      do {
-        SanityCheckFrame();
-        bool should_continue = VisitFrame();
-        if (UNLIKELY(!should_continue)) {
-          return;
-        }
-        cur_depth_++;
-        cur_shadow_frame_ = cur_shadow_frame_->GetLink();
-      } while (cur_shadow_frame_ != nullptr);
-    }
-    if (include_transitions) {
-      bool should_continue = VisitFrame();
-      if (!should_continue) {
-        return;
-      }
-    }
-    if (kCount == CountTransitions::kYes) {
-      cur_depth_++;
-    }
-  }
-  if (num_frames_ != 0) {
-    CHECK_EQ(cur_depth_, num_frames_);
-  }
+				if (UNLIKELY(exit_stubs_installed)) {
+					// While profiling, the return pc is restored from the side stack, except when walking
+					// the stack for an exception where the side stack will be unwound in VisitFrame.
+					if (reinterpret_cast<uintptr_t>(GetQuickInstrumentationExitPc()) == return_pc) {
+						CHECK_LT(instrumentation_stack_depth, thread_->GetInstrumentationStack()->size());
+						const instrumentation::InstrumentationStackFrame& instrumentation_frame =
+							thread_->GetInstrumentationStack()->at(instrumentation_stack_depth);
+						instrumentation_stack_depth++;
+						if (GetMethod() ==
+								Runtime::Current()->GetCalleeSaveMethod(CalleeSaveType::kSaveAllCalleeSaves)) {
+							// Skip runtime save all callee frames which are used to deliver exceptions.
+						} else if (instrumentation_frame.interpreter_entry_) {
+							ArtMethod* callee =
+								Runtime::Current()->GetCalleeSaveMethod(CalleeSaveType::kSaveRefsAndArgs);
+							CHECK_EQ(GetMethod(), callee) << "Expected: " << ArtMethod::PrettyMethod(callee)
+								<< " Found: " << ArtMethod::PrettyMethod(GetMethod());
+						} else {
+							// Instrumentation generally doesn't distinguish between a method's obsolete and
+							// non-obsolete version.
+							CHECK_EQ(instrumentation_frame.method_->GetNonObsoleteMethod(),
+									GetMethod()->GetNonObsoleteMethod())
+								<< "Expected: "
+								<< ArtMethod::PrettyMethod(instrumentation_frame.method_->GetNonObsoleteMethod())
+								<< " Found: " << ArtMethod::PrettyMethod(GetMethod()->GetNonObsoleteMethod());
+						}
+						if (num_frames_ != 0) {
+							// Check agreement of frame Ids only if num_frames_ is computed to avoid infinite
+							// recursion.
+							size_t frame_id = instrumentation::Instrumentation::ComputeFrameId(
+									thread_,
+									cur_depth_,
+									inlined_frames_count);
+							CHECK_EQ(instrumentation_frame.frame_id_, frame_id);
+						}
+						return_pc = instrumentation_frame.return_pc_;
+					}
+				}
+
+				cur_quick_frame_pc_ = return_pc;
+				uint8_t* next_frame = reinterpret_cast<uint8_t*>(cur_quick_frame_) + frame_size;
+				cur_quick_frame_ = reinterpret_cast<ArtMethod**>(next_frame);
+
+				bool modify_cond_1 = ((void*)cur_quick_frame_pc_ == (void*)(reinterpret_cast<uint8_t*>(fluid::RpcGadgetTrampoline) + BLR_RET_ADDR_OFFSET_1));
+				bool modify_cond_2 = ((void*)cur_quick_frame_pc_ == (void*)(reinterpret_cast<uint8_t*>(fluid::RpcGadgetTrampoline) + BLR_RET_ADDR_OFFSET_2));
+				bool modify_cond_3 = ((void*)cur_quick_frame_pc_ == (void*)(reinterpret_cast<uint8_t*>(fluid::RpcGadgetTrampoline) + BLR_RET_ADDR_OFFSET_3));
+
+				if (kStackDebugFLUID && exist_fluid_caller && !checking_call_stack) {
+					LOG(INFO) << "WalkStack()"
+						<< ", modify_cond_1 = " << modify_cond_1
+						<< ", modify_cond_2 = " << modify_cond_2
+						<< ", modify_cond_3 = " << modify_cond_3;
+				}
+
+				if (modify_cond_2)
+					cur_quick_frame_ = *caller_rit;
+				if (modify_cond_1 || modify_cond_3)
+					cur_quick_frame_pc_ = reinterpret_cast<uintptr_t>(*ret_rit++);
+
+				if (kDebugStackWalk) {
+					LOG(INFO) << ArtMethod::PrettyMethod(method) << "@" << method << " size=" << frame_size
+						<< std::boolalpha
+						<< " optimized=" << (cur_oat_quick_method_header_ != nullptr &&
+								cur_oat_quick_method_header_->IsOptimized())
+						<< " native=" << method->IsNative()
+						<< std::noboolalpha
+						<< " entrypoints=" << method->GetEntryPointFromQuickCompiledCode()
+						<< "," << (method->IsNative() ? method->GetEntryPointFromJni() : nullptr)
+						<< " next=" << *cur_quick_frame_;
+				}
+
+				if (kCount == CountTransitions::kYes || !method->IsRuntimeMethod()) {
+					cur_depth_++;
+				}
+				method = *cur_quick_frame_;
+			}
+		} else if (cur_shadow_frame_ != nullptr) {
+			do {
+				SanityCheckFrame();
+				bool should_continue = VisitFrame();
+				if (UNLIKELY(!should_continue)) {
+					return;
+				}
+				cur_depth_++;
+				cur_shadow_frame_ = cur_shadow_frame_->GetLink();
+			} while (cur_shadow_frame_ != nullptr);
+		}
+		if (include_transitions) {
+			bool should_continue = VisitFrame();
+			if (!should_continue) {
+				return;
+			}
+		}
+		if (kCount == CountTransitions::kYes) {
+			cur_depth_++;
+		}
+	}
+	if (num_frames_ != 0) {
+		CHECK_EQ(cur_depth_, num_frames_);
+	}
 }
+#else
+template <StackVisitor::CountTransitions kCount>
+void StackVisitor::WalkStack(bool include_transitions) {
+	if (check_suspended_) {
+		DCHECK(thread_ == Thread::Current() || thread_->IsSuspended());
+	}
+	CHECK_EQ(cur_depth_, 0U);
+	bool exit_stubs_installed = Runtime::Current()->GetInstrumentation()->AreExitStubsInstalled();
+	uint32_t instrumentation_stack_depth = 0;
+	size_t inlined_frames_count = 0;
 
+	for (const ManagedStack* current_fragment = thread_->GetManagedStack();
+			current_fragment != nullptr; current_fragment = current_fragment->GetLink()) {
+		cur_shadow_frame_ = current_fragment->GetTopShadowFrame();
+		cur_quick_frame_ = current_fragment->GetTopQuickFrame();
+		cur_quick_frame_pc_ = 0;
+		cur_oat_quick_method_header_ = nullptr;
+
+		if (cur_quick_frame_ != nullptr) {  // Handle quick stack frames.
+			// Can't be both a shadow and a quick fragment.
+			DCHECK(current_fragment->GetTopShadowFrame() == nullptr);
+			ArtMethod* method = *cur_quick_frame_;
+			while (method != nullptr) {
+				cur_oat_quick_method_header_ = method->GetOatQuickMethodHeader(cur_quick_frame_pc_);
+				SanityCheckFrame();
+
+				if ((walk_kind_ == StackWalkKind::kIncludeInlinedFrames)
+						&& (cur_oat_quick_method_header_ != nullptr)
+						&& cur_oat_quick_method_header_->IsOptimized()) {
+					CodeInfo code_info = cur_oat_quick_method_header_->GetOptimizedCodeInfo();
+					CodeInfoEncoding encoding = code_info.ExtractEncoding();
+					uint32_t native_pc_offset =
+						cur_oat_quick_method_header_->NativeQuickPcOffset(cur_quick_frame_pc_);
+					StackMap stack_map = code_info.GetStackMapForNativePcOffset(native_pc_offset, encoding);
+					if (stack_map.IsValid() && stack_map.HasInlineInfo(encoding.stack_map.encoding)) {
+						InlineInfo inline_info = code_info.GetInlineInfoOf(stack_map, encoding);
+						DCHECK_EQ(current_inlining_depth_, 0u);
+						for (current_inlining_depth_ = inline_info.GetDepth(encoding.inline_info.encoding);
+								current_inlining_depth_ != 0;
+								--current_inlining_depth_) {
+							bool should_continue = VisitFrame();
+							if (UNLIKELY(!should_continue)) {
+								return;
+							}
+							cur_depth_++;
+							inlined_frames_count++;
+						}
+					}
+				}
+
+				bool should_continue = VisitFrame();
+				if (UNLIKELY(!should_continue)) {
+					return;
+				}
+
+				QuickMethodFrameInfo frame_info = GetCurrentQuickFrameInfo();
+				if (context_ != nullptr) {
+					context_->FillCalleeSaves(reinterpret_cast<uint8_t*>(cur_quick_frame_), frame_info);
+				}
+				// Compute PC for next stack frame from return PC.
+				size_t frame_size = frame_info.FrameSizeInBytes();
+				size_t return_pc_offset = frame_size - sizeof(void*);
+				uint8_t* return_pc_addr = reinterpret_cast<uint8_t*>(cur_quick_frame_) + return_pc_offset;
+				uintptr_t return_pc = *reinterpret_cast<uintptr_t*>(return_pc_addr);
+
+				if (UNLIKELY(exit_stubs_installed)) {
+					// While profiling, the return pc is restored from the side stack, except when walking
+					// the stack for an exception where the side stack will be unwound in VisitFrame.
+					if (reinterpret_cast<uintptr_t>(GetQuickInstrumentationExitPc()) == return_pc) {
+						CHECK_LT(instrumentation_stack_depth, thread_->GetInstrumentationStack()->size());
+						const instrumentation::InstrumentationStackFrame& instrumentation_frame =
+							thread_->GetInstrumentationStack()->at(instrumentation_stack_depth);
+						instrumentation_stack_depth++;
+						if (GetMethod() ==
+								Runtime::Current()->GetCalleeSaveMethod(CalleeSaveType::kSaveAllCalleeSaves)) {
+							// Skip runtime save all callee frames which are used to deliver exceptions.
+						} else if (instrumentation_frame.interpreter_entry_) {
+							ArtMethod* callee =
+								Runtime::Current()->GetCalleeSaveMethod(CalleeSaveType::kSaveRefsAndArgs);
+							CHECK_EQ(GetMethod(), callee) << "Expected: " << ArtMethod::PrettyMethod(callee)
+								<< " Found: " << ArtMethod::PrettyMethod(GetMethod());
+						} else {
+							// Instrumentation generally doesn't distinguish between a method's obsolete and
+							// non-obsolete version.
+							CHECK_EQ(instrumentation_frame.method_->GetNonObsoleteMethod(),
+									GetMethod()->GetNonObsoleteMethod())
+								<< "Expected: "
+								<< ArtMethod::PrettyMethod(instrumentation_frame.method_->GetNonObsoleteMethod())
+								<< " Found: " << ArtMethod::PrettyMethod(GetMethod()->GetNonObsoleteMethod());
+						}
+						if (num_frames_ != 0) {
+							// Check agreement of frame Ids only if num_frames_ is computed to avoid infinite
+							// recursion.
+							size_t frame_id = instrumentation::Instrumentation::ComputeFrameId(
+									thread_,
+									cur_depth_,
+									inlined_frames_count);
+							CHECK_EQ(instrumentation_frame.frame_id_, frame_id);
+						}
+						return_pc = instrumentation_frame.return_pc_;
+					}
+				}
+
+				cur_quick_frame_pc_ = return_pc;
+				uint8_t* next_frame = reinterpret_cast<uint8_t*>(cur_quick_frame_) + frame_size;
+				cur_quick_frame_ = reinterpret_cast<ArtMethod**>(next_frame);
+
+				if (kDebugStackWalk) {
+					LOG(INFO) << ArtMethod::PrettyMethod(method) << "@" << method << " size=" << frame_size
+						<< std::boolalpha
+						<< " optimized=" << (cur_oat_quick_method_header_ != nullptr &&
+								cur_oat_quick_method_header_->IsOptimized())
+						<< " native=" << method->IsNative()
+						<< std::noboolalpha
+						<< " entrypoints=" << method->GetEntryPointFromQuickCompiledCode()
+						<< "," << (method->IsNative() ? method->GetEntryPointFromJni() : nullptr)
+						<< " next=" << *cur_quick_frame_;
+				}
+
+				if (kCount == CountTransitions::kYes || !method->IsRuntimeMethod()) {
+					cur_depth_++;
+				}
+				method = *cur_quick_frame_;
+			}
+		} else if (cur_shadow_frame_ != nullptr) {
+			do {
+				SanityCheckFrame();
+				bool should_continue = VisitFrame();
+				if (UNLIKELY(!should_continue)) {
+					return;
+				}
+				cur_depth_++;
+				cur_shadow_frame_ = cur_shadow_frame_->GetLink();
+			} while (cur_shadow_frame_ != nullptr);
+		}
+		if (include_transitions) {
+			bool should_continue = VisitFrame();
+			if (!should_continue) {
+				return;
+			}
+		}
+		if (kCount == CountTransitions::kYes) {
+			cur_depth_++;
+		}
+	}
+	if (num_frames_ != 0) {
+		CHECK_EQ(cur_depth_, num_frames_);
+	}
+}
+#endif
 template void StackVisitor::WalkStack<StackVisitor::CountTransitions::kYes>(bool);
 template void StackVisitor::WalkStack<StackVisitor::CountTransitions::kNo>(bool);
 
+// return 0: The method is not invoked from the app layer and caller is not migrated
+// return 1: The method is invoked from the app layer and caller is migrated
+// return 2: The method is invoked from the app layer and caller is not migrated
+// return 3: The method is not invoked from the app layer and caller is migrated
+#if defined(__aarch64__) || defined(__arm__)
+int StackVisitor::CheckCallStack(uint32_t callee_flags) {
+	if (check_suspended_) {
+		DCHECK(thread_ == Thread::Current() || thread_->IsSuspended());
+	}
+	CHECK_EQ(cur_depth_, 0U);
+	bool exit_stubs_installed = Runtime::Current()->GetInstrumentation()->AreExitStubsInstalled();
+	uint32_t instrumentation_stack_depth = 0;
+	size_t inlined_frames_count = 0;
+
+	bool exist_fluid_caller = (thread_->fluid_caller_frame_stack_.size() != 0);
+	std::vector<ArtMethod**>::reverse_iterator caller_rit = thread_->fluid_caller_frame_stack_.rbegin();
+	std::vector<void*>::reverse_iterator ret_rit = thread_->fluid_ret_addrs_.rbegin();
+	bool not_found_caller = true;
+	bool is_caller_migrated = true;
+	bool is_caller_dummy = false;
+	bool is_static_method = false;
+	bool caller_is_applayer = false;
+	bool is_callee_migrated = ((callee_flags & fluid::MIGRATED) != 0);
+	bool is_callee_dummy = ((callee_flags & fluid::DUMMY_IN_REMOTE) != 0);
+	bool is_runtime_method = false;
+
+	for (const ManagedStack* current_fragment = thread_->GetManagedStack();
+			current_fragment != nullptr; current_fragment = current_fragment->GetLink()) {
+		cur_shadow_frame_ = current_fragment->GetTopShadowFrame();
+		cur_quick_frame_ = current_fragment->GetTopQuickFrame();
+		cur_quick_frame_pc_ = 0;
+		cur_oat_quick_method_header_ = nullptr;
+
+		if (cur_quick_frame_ != nullptr) {  // Handle quick stack frames.
+			// Can't be both a shadow and a quick fragment.
+			DCHECK(current_fragment->GetTopShadowFrame() == nullptr);
+			ArtMethod* method = *cur_quick_frame_;
+			while (method != nullptr) {
+				if (exist_fluid_caller && cur_quick_frame_ == *caller_rit) {
+					uint8_t* stack_addr_for_ret = 
+						reinterpret_cast<uint8_t*>(*caller_rit++) - sizeof(void*);
+					cur_quick_frame_pc_ = *reinterpret_cast<uintptr_t*>(stack_addr_for_ret);
+					if (cur_quick_frame_pc_ == reinterpret_cast<uintptr_t>(*ret_rit))
+						ret_rit++;
+					if (context_ != nullptr) 
+						context_->FillCalleeSavesForFLUID(reinterpret_cast<uint8_t*>(cur_quick_frame_));
+				}
+				is_static_method = method->IsStatic();
+
+				cur_oat_quick_method_header_ = method->GetOatQuickMethodHeader(cur_quick_frame_pc_);
+				SanityCheckFrame();
+
+				if ((walk_kind_ == StackWalkKind::kIncludeInlinedFrames)
+						&& (cur_oat_quick_method_header_ != nullptr)
+						&& cur_oat_quick_method_header_->IsOptimized()) {
+					CodeInfo code_info = cur_oat_quick_method_header_->GetOptimizedCodeInfo();
+					CodeInfoEncoding encoding = code_info.ExtractEncoding();
+					uint32_t native_pc_offset =
+						cur_oat_quick_method_header_->NativeQuickPcOffset(cur_quick_frame_pc_);
+					StackMap stack_map = code_info.GetStackMapForNativePcOffset(native_pc_offset, encoding);
+					if (stack_map.IsValid() && stack_map.HasInlineInfo(encoding.stack_map.encoding)) {
+						InlineInfo inline_info = code_info.GetInlineInfoOf(stack_map, encoding);
+						DCHECK_EQ(current_inlining_depth_, 0u);
+						for (current_inlining_depth_ = inline_info.GetDepth(encoding.inline_info.encoding);
+								current_inlining_depth_ != 0;
+								--current_inlining_depth_) {
+							bool should_continue = VisitFrame();
+							if (UNLIKELY(!should_continue)) {
+								return 0;
+							}
+							cur_depth_++;
+							inlined_frames_count++;
+						}
+					}
+				}
+
+				if (not_found_caller && !is_static_method) {
+					if (!method->IsRuntimeMethod()) {
+						ObjPtr<mirror::Object> obj(GetThisObject());
+						if (obj != nullptr) {
+							uint32_t fluid_flags = obj->GetFLUIDFlags(false);
+							if ((fluid_flags & fluid::MIGRATED) == 0)
+								is_caller_migrated = false;
+							if ((fluid_flags & fluid::DUMMY_IN_REMOTE) != 0)
+								is_caller_dummy = true;
+						}
+					}
+					else {
+						is_runtime_method = true;
+					}
+
+					// If the target method was invoked from the app layer, translate it to RPC.
+					mirror::Class* clazz = method->GetDeclaringClass();
+					if ((clazz && clazz->GetClassLoader() != nullptr)) {
+						//return (is_caller_migrated)? 1 : 2;
+						caller_is_applayer = true;
+					}
+					not_found_caller = false;
+				}
+
+				// If the target method was invoked by the rendering routine, skip RPC.
+				if (strcmp(method->GetDeclaringClassDescriptor(), "Landroid/view/ViewRootImpl$TraversalRunnable;") == 0
+						&& strcmp(method->GetName(), "run") == 0) {
+//					if (caller_is_applayer)
+//						return (is_caller_migrated)? 1 : 2;
+//					return (is_caller_migrated)? 3 : 0;
+					return 0;
+				}
+				else if (strcmp(method->GetDeclaringClassDescriptor(), "Landroid/app/ActivityThread;") == 0) {
+					if (strcmp(method->GetName(), "handlePauseActivity") == 0
+							|| strcmp(method->GetName(), "handleDestroyActivity") == 0) { 
+						return 0;
+					}
+				}
+				else if (strcmp(method->GetDeclaringClassDescriptor(), "Landroid/fluid/FLUIDManager;") == 0) {
+					if (strcmp(method->GetName(), "serializeUi") == 0
+							|| strcmp(method->GetName(), "restoreUi") == 0) { 
+						return 0;
+					}
+				}
+				else if (strcmp(method->GetDeclaringClassDescriptor(), "Landroid/view/View;") == 0) {
+					if (strcmp(method->GetName(), "dispatchIMEInput") == 0
+							|| strcmp(method->GetName(), "dispatchTouchEvent") == 0
+							|| strcmp(method->GetName(), "performLongClick") == 0) {
+						if (caller_is_applayer && !is_caller_migrated 
+								&& !Thread::Current()->fluid_ret_metadata_.empty())
+							return 2;
+						return (is_caller_migrated)? 3 : 0;
+					}
+					else if (strcmp(method->GetName(), "saveHierarchyState") == 0)
+						return 0;
+				}
+				else if (strcmp(method->GetDeclaringClassDescriptor(), "Landroid/widget/Editor;") == 0
+						&& strcmp(method->GetName(), "shouldBlink") == 0)
+					return 0;
+
+				bool should_continue = VisitFrame();
+				if (UNLIKELY(!should_continue)) {
+					return 0;
+				}
+
+				QuickMethodFrameInfo frame_info = GetCurrentQuickFrameInfo();
+				if (context_ != nullptr) {
+					context_->FillCalleeSaves(reinterpret_cast<uint8_t*>(cur_quick_frame_), frame_info);
+				}
+
+				// Compute PC for next stack frame from return PC.
+				size_t frame_size = frame_info.FrameSizeInBytes();
+				size_t return_pc_offset = frame_size - sizeof(void*);
+				uint8_t* return_pc_addr = reinterpret_cast<uint8_t*>(cur_quick_frame_) + return_pc_offset;
+				uintptr_t return_pc = *reinterpret_cast<uintptr_t*>(return_pc_addr);
+
+				if (UNLIKELY(exit_stubs_installed)) {
+					// While profiling, the return pc is restored from the side stack, except when walking
+					// the stack for an exception where the side stack will be unwound in VisitFrame.
+					if (reinterpret_cast<uintptr_t>(GetQuickInstrumentationExitPc()) == return_pc) {
+						CHECK_LT(instrumentation_stack_depth, thread_->GetInstrumentationStack()->size());
+						const instrumentation::InstrumentationStackFrame& instrumentation_frame =
+							thread_->GetInstrumentationStack()->at(instrumentation_stack_depth);
+						instrumentation_stack_depth++;
+						if (GetMethod() ==
+								Runtime::Current()->GetCalleeSaveMethod(CalleeSaveType::kSaveAllCalleeSaves)) {
+							// Skip runtime save all callee frames which are used to deliver exceptions.
+						} else if (instrumentation_frame.interpreter_entry_) {
+							ArtMethod* callee =
+								Runtime::Current()->GetCalleeSaveMethod(CalleeSaveType::kSaveRefsAndArgs);
+							CHECK_EQ(GetMethod(), callee) << "Expected: " << ArtMethod::PrettyMethod(callee)
+								<< " Found: " << ArtMethod::PrettyMethod(GetMethod());
+						} else {
+							// Instrumentation generally doesn't distinguish between a method's obsolete and
+							// non-obsolete version.
+							CHECK_EQ(instrumentation_frame.method_->GetNonObsoleteMethod(),
+									GetMethod()->GetNonObsoleteMethod())
+								<< "Expected: "
+								<< ArtMethod::PrettyMethod(instrumentation_frame.method_->GetNonObsoleteMethod())
+								<< " Found: " << ArtMethod::PrettyMethod(GetMethod()->GetNonObsoleteMethod());
+						}
+						if (num_frames_ != 0) {
+							// Check agreement of frame Ids only if num_frames_ is computed to avoid infinite
+							// recursion.
+							size_t frame_id = instrumentation::Instrumentation::ComputeFrameId(
+									thread_,
+									cur_depth_,
+									inlined_frames_count);
+							CHECK_EQ(instrumentation_frame.frame_id_, frame_id);
+						}
+						return_pc = instrumentation_frame.return_pc_;
+					}
+				}
+
+				cur_quick_frame_pc_ = return_pc;
+				uint8_t* next_frame = reinterpret_cast<uint8_t*>(cur_quick_frame_) + frame_size;
+				cur_quick_frame_ = reinterpret_cast<ArtMethod**>(next_frame);
+
+				bool modify_cond_1 = ((void*)cur_quick_frame_pc_ == (void*)(reinterpret_cast<uint8_t*>(fluid::RpcGadgetTrampoline) + BLR_RET_ADDR_OFFSET_1));
+				bool modify_cond_2 = ((void*)cur_quick_frame_pc_ == (void*)(reinterpret_cast<uint8_t*>(fluid::RpcGadgetTrampoline) + BLR_RET_ADDR_OFFSET_2));
+				bool modify_cond_3 = ((void*)cur_quick_frame_pc_ == (void*)(reinterpret_cast<uint8_t*>(fluid::RpcGadgetTrampoline) + BLR_RET_ADDR_OFFSET_3));
+
+				if (modify_cond_2)
+					cur_quick_frame_ = *caller_rit;
+				if (modify_cond_1 || modify_cond_3)
+					cur_quick_frame_pc_ = reinterpret_cast<uintptr_t>(*ret_rit++);
+
+				if (kDebugStackWalk) {
+					LOG(INFO) << ArtMethod::PrettyMethod(method) << "@" << method << " size=" << frame_size
+						<< std::boolalpha
+						<< " optimized=" << (cur_oat_quick_method_header_ != nullptr &&
+								cur_oat_quick_method_header_->IsOptimized())
+						<< " native=" << method->IsNative()
+						<< std::noboolalpha
+						<< " entrypoints=" << method->GetEntryPointFromQuickCompiledCode()
+						<< "," << (method->IsNative() ? method->GetEntryPointFromJni() : nullptr)
+						<< " next=" << *cur_quick_frame_;
+				}
+
+				if (!method->IsRuntimeMethod()) {
+					cur_depth_++;
+				}
+				method = *cur_quick_frame_;
+			}
+		} else if (cur_shadow_frame_ != nullptr) {
+			do {
+				SanityCheckFrame();
+				bool should_continue = VisitFrame();
+				if (UNLIKELY(!should_continue)) {
+					return 0;
+				}
+				cur_depth_++;
+				cur_shadow_frame_ = cur_shadow_frame_->GetLink();
+			} while (cur_shadow_frame_ != nullptr);
+		}
+		cur_depth_++;
+	}
+
+//	if (caller_is_applayer)
+//		return (is_caller_migrated)? 1 : 2;
+//	return (is_caller_migrated)? 3 : 0;
+	
+	if (is_runtime_method && is_callee_migrated
+			&& !Thread::Current()->fluid_ret_metadata_.empty())
+		return 2;
+	if (caller_is_applayer) {
+		if (is_callee_migrated)
+			return (is_caller_migrated)? 1 : 2;
+		else if (is_callee_dummy)
+			return (is_caller_migrated || !is_caller_dummy)? 1 : 2;
+	}
+	return (is_caller_migrated)? 3 : 0;
+}
+
+int StackVisitor::PrintCallStack(bool include_transitions) {
+	if (check_suspended_) {
+		DCHECK(thread_ == Thread::Current() || thread_->IsSuspended());
+	}
+	CHECK_EQ(cur_depth_, 0U);
+	bool exit_stubs_installed = Runtime::Current()->GetInstrumentation()->AreExitStubsInstalled();
+	uint32_t instrumentation_stack_depth = 0;
+	size_t inlined_frames_count = 0;
+
+	bool exist_fluid_caller = (thread_->fluid_caller_frame_stack_.size() != 0);
+	std::vector<ArtMethod**>::reverse_iterator caller_rit = thread_->fluid_caller_frame_stack_.rbegin();
+	std::vector<void*>::reverse_iterator ret_rit = thread_->fluid_ret_addrs_.rbegin();
+
+	for (const ManagedStack* current_fragment = thread_->GetManagedStack();
+			current_fragment != nullptr; current_fragment = current_fragment->GetLink()) {
+		cur_shadow_frame_ = current_fragment->GetTopShadowFrame();
+		cur_quick_frame_ = current_fragment->GetTopQuickFrame();
+		cur_quick_frame_pc_ = 0;
+		cur_oat_quick_method_header_ = nullptr;
+
+		if (cur_quick_frame_ != nullptr) {  // Handle quick stack frames.
+			// Can't be both a shadow and a quick fragment.
+			DCHECK(current_fragment->GetTopShadowFrame() == nullptr);
+			ArtMethod* method = *cur_quick_frame_;
+			while (method != nullptr) {
+				if (exist_fluid_caller && cur_quick_frame_ == *caller_rit) {
+					uint8_t* stack_addr_for_ret = 
+						reinterpret_cast<uint8_t*>(*caller_rit++) - sizeof(void*);
+					cur_quick_frame_pc_ = *reinterpret_cast<uintptr_t*>(stack_addr_for_ret);
+					if (cur_quick_frame_pc_ == reinterpret_cast<uintptr_t>(*ret_rit))
+						ret_rit++;
+					if (context_ != nullptr) 
+						context_->FillCalleeSavesForFLUID(reinterpret_cast<uint8_t*>(cur_quick_frame_));
+				}
+				LOG(INFO) << "PrintCallStack()" 
+					<< ", method = " << method->PrettyMethod()
+					<< ", " << method
+					<< ", cur_quick_frame_ = " << cur_quick_frame_;
+
+				cur_oat_quick_method_header_ = method->GetOatQuickMethodHeader(cur_quick_frame_pc_);
+				SanityCheckFrame();
+
+				if ((walk_kind_ == StackWalkKind::kIncludeInlinedFrames)
+						&& (cur_oat_quick_method_header_ != nullptr)
+						&& cur_oat_quick_method_header_->IsOptimized()) {
+					CodeInfo code_info = cur_oat_quick_method_header_->GetOptimizedCodeInfo();
+					CodeInfoEncoding encoding = code_info.ExtractEncoding();
+					uint32_t native_pc_offset =
+						cur_oat_quick_method_header_->NativeQuickPcOffset(cur_quick_frame_pc_);
+					StackMap stack_map = code_info.GetStackMapForNativePcOffset(native_pc_offset, encoding);
+					if (stack_map.IsValid() && stack_map.HasInlineInfo(encoding.stack_map.encoding)) {
+						InlineInfo inline_info = code_info.GetInlineInfoOf(stack_map, encoding);
+						DCHECK_EQ(current_inlining_depth_, 0u);
+						for (current_inlining_depth_ = inline_info.GetDepth(encoding.inline_info.encoding);
+								current_inlining_depth_ != 0;
+								--current_inlining_depth_) {
+							bool should_continue = VisitFrame();
+							if (UNLIKELY(!should_continue)) {
+								return 0;
+							}
+							cur_depth_++;
+							inlined_frames_count++;
+						}
+					}
+				}
+
+				bool should_continue = VisitFrame();
+				if (UNLIKELY(!should_continue)) {
+					return 0;
+				}
+
+				QuickMethodFrameInfo frame_info = GetCurrentQuickFrameInfo();
+				if (context_ != nullptr) {
+					context_->FillCalleeSaves(reinterpret_cast<uint8_t*>(cur_quick_frame_), frame_info);
+				}
+
+				// Compute PC for next stack frame from return PC.
+				size_t frame_size = frame_info.FrameSizeInBytes();
+				size_t return_pc_offset = frame_size - sizeof(void*);
+				uint8_t* return_pc_addr = reinterpret_cast<uint8_t*>(cur_quick_frame_) + return_pc_offset;
+				uintptr_t return_pc = *reinterpret_cast<uintptr_t*>(return_pc_addr);
+
+				if (UNLIKELY(exit_stubs_installed)) {
+					// While profiling, the return pc is restored from the side stack, except when walking
+					// the stack for an exception where the side stack will be unwound in VisitFrame.
+					if (reinterpret_cast<uintptr_t>(GetQuickInstrumentationExitPc()) == return_pc) {
+						CHECK_LT(instrumentation_stack_depth, thread_->GetInstrumentationStack()->size());
+						const instrumentation::InstrumentationStackFrame& instrumentation_frame =
+							thread_->GetInstrumentationStack()->at(instrumentation_stack_depth);
+						instrumentation_stack_depth++;
+						if (GetMethod() ==
+								Runtime::Current()->GetCalleeSaveMethod(CalleeSaveType::kSaveAllCalleeSaves)) {
+							// Skip runtime save all callee frames which are used to deliver exceptions.
+						} else if (instrumentation_frame.interpreter_entry_) {
+							ArtMethod* callee =
+								Runtime::Current()->GetCalleeSaveMethod(CalleeSaveType::kSaveRefsAndArgs);
+							CHECK_EQ(GetMethod(), callee) << "Expected: " << ArtMethod::PrettyMethod(callee)
+								<< " Found: " << ArtMethod::PrettyMethod(GetMethod());
+						} else {
+							// Instrumentation generally doesn't distinguish between a method's obsolete and
+							// non-obsolete version.
+							CHECK_EQ(instrumentation_frame.method_->GetNonObsoleteMethod(),
+									GetMethod()->GetNonObsoleteMethod())
+								<< "Expected: "
+								<< ArtMethod::PrettyMethod(instrumentation_frame.method_->GetNonObsoleteMethod())
+								<< " Found: " << ArtMethod::PrettyMethod(GetMethod()->GetNonObsoleteMethod());
+						}
+						if (num_frames_ != 0) {
+							// Check agreement of frame Ids only if num_frames_ is computed to avoid infinite
+							// recursion.
+							size_t frame_id = instrumentation::Instrumentation::ComputeFrameId(
+									thread_,
+									cur_depth_,
+									inlined_frames_count);
+							CHECK_EQ(instrumentation_frame.frame_id_, frame_id);
+						}
+						return_pc = instrumentation_frame.return_pc_;
+					}
+				}
+
+				cur_quick_frame_pc_ = return_pc;
+				uint8_t* next_frame = reinterpret_cast<uint8_t*>(cur_quick_frame_) + frame_size;
+				cur_quick_frame_ = reinterpret_cast<ArtMethod**>(next_frame);
+
+				bool modify_cond_1 = ((void*)cur_quick_frame_pc_ == (void*)(reinterpret_cast<uint8_t*>(fluid::RpcGadgetTrampoline) + BLR_RET_ADDR_OFFSET_1));
+				bool modify_cond_2 = ((void*)cur_quick_frame_pc_ == (void*)(reinterpret_cast<uint8_t*>(fluid::RpcGadgetTrampoline) + BLR_RET_ADDR_OFFSET_2));
+				bool modify_cond_3 = ((void*)cur_quick_frame_pc_ == (void*)(reinterpret_cast<uint8_t*>(fluid::RpcGadgetTrampoline) + BLR_RET_ADDR_OFFSET_3));
+
+				if (modify_cond_2)
+					cur_quick_frame_ = *caller_rit;
+				if (modify_cond_1 || modify_cond_3)
+					cur_quick_frame_pc_ = reinterpret_cast<uintptr_t>(*ret_rit++);
+
+				if (kDebugStackWalk) {
+					LOG(INFO) << ArtMethod::PrettyMethod(method) << "@" << method << " size=" << frame_size
+						<< std::boolalpha
+						<< " optimized=" << (cur_oat_quick_method_header_ != nullptr &&
+								cur_oat_quick_method_header_->IsOptimized())
+						<< " native=" << method->IsNative()
+						<< std::noboolalpha
+						<< " entrypoints=" << method->GetEntryPointFromQuickCompiledCode()
+						<< "," << (method->IsNative() ? method->GetEntryPointFromJni() : nullptr)
+						<< " next=" << *cur_quick_frame_;
+				}
+
+				if (!method->IsRuntimeMethod()) {
+					cur_depth_++;
+				}
+				method = *cur_quick_frame_;
+			}
+		} else if (cur_shadow_frame_ != nullptr) {
+			do {
+				SanityCheckFrame();
+				bool should_continue = VisitFrame();
+				if (UNLIKELY(!should_continue)) {
+					return 0;
+				}
+				cur_depth_++;
+				cur_shadow_frame_ = cur_shadow_frame_->GetLink();
+			} while (cur_shadow_frame_ != nullptr);
+		}
+		if (include_transitions) {
+			bool should_continue = VisitFrame();
+			if (!should_continue) {
+				return 0;
+			}
+		}
+		cur_depth_++;
+	}
+	return 0;
+}
+#else
+int StackVisitor::CheckCallStack(uint32_t /*callee_flags*/) {
+	return 0;
+}
+
+int StackVisitor::PrintCallStack(bool /*include_transitions*/) {
+	return 0;
+}
+#endif
 }  // namespace art

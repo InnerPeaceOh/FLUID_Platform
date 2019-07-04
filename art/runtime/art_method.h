@@ -399,6 +399,8 @@ class ArtMethod FINAL {
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   const void* GetEntryPointFromQuickCompiledCode() {
+	if (ptr_sized_fields_.original_entry_point_)
+	  return GetOriginalEntryPoint();
     return GetEntryPointFromQuickCompiledCodePtrSize(kRuntimePointerSize);
   }
   ALWAYS_INLINE const void* GetEntryPointFromQuickCompiledCodePtrSize(PointerSize pointer_size) {
@@ -407,6 +409,10 @@ class ArtMethod FINAL {
   }
 
   void SetEntryPointFromQuickCompiledCode(const void* entry_point_from_quick_compiled_code) {
+    if (ptr_sized_fields_.original_entry_point_) {
+      SetOriginalEntryPoint(entry_point_from_quick_compiled_code);
+      return;
+    }
     SetEntryPointFromQuickCompiledCodePtrSize(entry_point_from_quick_compiled_code,
                                               kRuntimePointerSize);
   }
@@ -415,6 +421,34 @@ class ArtMethod FINAL {
     SetNativePointer(EntryPointFromQuickCompiledCodeOffset(pointer_size),
                      entry_point_from_quick_compiled_code,
                      pointer_size);
+  }
+
+  static MemberOffset OriginalEntryPointOffset(PointerSize pointer_size) {
+    return MemberOffset(PtrSizedFieldsOffset(pointer_size) + OFFSETOF_MEMBER(
+        PtrSizedFields, original_entry_point_) / sizeof(void*)
+            * static_cast<size_t>(pointer_size));
+  }
+
+  const void* GetOriginalEntryPoint() {
+    return GetOriginalEntryPointPtrSize(kRuntimePointerSize);
+  }
+
+  ALWAYS_INLINE const void* GetOriginalEntryPointPtrSize(PointerSize pointer_size) {
+    return GetNativePointer<const void*>(OriginalEntryPointOffset(pointer_size), pointer_size);
+  }
+
+  void SetOriginalEntryPoint(const void* original_entry_point) {
+    SetOriginalEntryPointPtrSize(original_entry_point, kRuntimePointerSize);
+  }
+
+  ALWAYS_INLINE void SetOriginalEntryPointPtrSize(
+      const void* original_entry_point, PointerSize pointer_size) {
+    SetNativePointer(OriginalEntryPointOffset(pointer_size), original_entry_point,
+                     pointer_size);
+  }
+
+  const void* GetCurrentEntryPoint() {
+    return GetEntryPointFromQuickCompiledCodePtrSize(kRuntimePointerSize);
   }
 
   // Registers the native method and returns the new entry point. NB The returned entry point might
@@ -703,6 +737,8 @@ class ArtMethod FINAL {
     visitor(this,
             &ptr_sized_fields_.entry_point_from_quick_compiled_code_,
             "ptr_sized_fields_.entry_point_from_quick_compiled_code_");
+    visitor(this, &ptr_sized_fields_.original_entry_point_, 
+			"ptr_sized_fields_.original_entry_point_");
   }
 
  protected:
@@ -750,6 +786,8 @@ class ArtMethod FINAL {
     // Method dispatch from quick compiled code invokes this pointer which may cause bridging into
     // the interpreter.
     void* entry_point_from_quick_compiled_code_;
+
+    void* original_entry_point_;
   } ptr_sized_fields_;
 
  private:
