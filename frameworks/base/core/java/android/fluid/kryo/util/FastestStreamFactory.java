@@ -17,95 +17,90 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.util;
+package android.fluid.kryo.util;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.StreamFactory;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.io.UnsafeInput;
-import com.esotericsoftware.kryo.io.UnsafeOutput;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.StreamFactory;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
 
 /** This StreamFactory tries to provide fastest possible Input/Output streams on a given platform. It may return sun.misc.Unsafe
  * based implementations of streams, which are very fast, but not portable across platforms.
  * 
  * @author Roman Levenstein <romixlev@gmail.com> */
+/** @hide */
 public class FastestStreamFactory implements StreamFactory {
-
-	static private boolean isUnsafe = UnsafeUtil.unsafe() != null;
 
 	@Override
 	public Input getInput () {
-		return (isUnsafe) ? new UnsafeInput() : new Input();
+		return new Input();
 	}
 
 	@Override
 	public Input getInput (int bufferSize) {
-		return (isUnsafe) ? new UnsafeInput(bufferSize) : new Input(bufferSize);
+		return new Input(bufferSize);
 	}
 
 	@Override
 	public Input getInput (byte[] buffer) {
-		return (isUnsafe) ? new UnsafeInput(buffer) : new Input(buffer);
+		return new Input(buffer);
 	}
 
 	@Override
 	public Input getInput (byte[] buffer, int offset, int count) {
-		return (isUnsafe) ? new UnsafeInput(buffer, offset, count) : new Input(buffer, offset, count);
+		return new Input(buffer, offset, count);
 	}
 
 	@Override
 	public Input getInput (InputStream inputStream) {
-		return (isUnsafe) ? new UnsafeInput(inputStream) : new Input(inputStream);
+		return new Input(inputStream);
 	}
 
 	@Override
 	public Input getInput (InputStream inputStream, int bufferSize) {
-		return (isUnsafe) ? new UnsafeInput(inputStream, bufferSize) : new Input(inputStream, bufferSize);
+		return new Input(inputStream, bufferSize);
 	}
 
 	@Override
 	public Output getOutput () {
-		return (isUnsafe) ? new UnsafeOutput() : new Output();
+		return new Output();
 	}
 
 	@Override
 	public Output getOutput (int bufferSize) {
-		return (isUnsafe) ? new UnsafeOutput(bufferSize) : new Output(bufferSize);
+		return new Output(bufferSize);
 	}
 
 	@Override
 	public Output getOutput (int bufferSize, int maxBufferSize) {
-		return (isUnsafe) ? new UnsafeOutput(bufferSize, maxBufferSize) : new Output(bufferSize, maxBufferSize);
+		return new Output(bufferSize, maxBufferSize);
 	}
 
 	@Override
 	public Output getOutput (byte[] buffer) {
-		return (isUnsafe) ? new UnsafeOutput(buffer) : new Output(buffer);
+		return new Output(buffer);
 	}
 
 	@Override
 	public Output getOutput (byte[] buffer, int maxBufferSize) {
-		return (isUnsafe) ? new UnsafeOutput(buffer, maxBufferSize) : new Output(buffer, maxBufferSize);
+		return new Output(buffer, maxBufferSize);
 	}
 
 	@Override
 	public Output getOutput (OutputStream outputStream) {
-		return (isUnsafe) ? new UnsafeOutput(outputStream) : new Output(outputStream);
+		return new Output(outputStream);
 	}
 
 	@Override
 	public Output getOutput (OutputStream outputStream, int bufferSize) {
-		return (isUnsafe) ? new UnsafeOutput(outputStream, bufferSize) : new Output(outputStream, bufferSize);
+		return new Output(outputStream, bufferSize);
 	}
 
 	@Override
 	public void setKryo (Kryo kryo) {
-		// Only use Unsafe-based streams if this Kryo instance supports it
-		// isUnsafe = UnsafeUtil.unsafe() != null && kryo.getUnsafe();
 	}
 
 }

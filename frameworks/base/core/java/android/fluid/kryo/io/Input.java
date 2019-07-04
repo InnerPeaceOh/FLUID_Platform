@@ -17,12 +17,12 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.io;
+package android.fluid.kryo.io;
 
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.esotericsoftware.kryo.KryoException;
+import android.fluid.kryo.KryoException;
 
 /** An InputStream that reads data from a byte array and optionally fills the byte array from another InputStream as needed.
  * Utility methods are provided for efficiently reading primitive types and strings.
@@ -30,6 +30,7 @@ import com.esotericsoftware.kryo.KryoException;
  * The byte[] buffer may be modified and then returned to its original state during some read operations, so the same byte[]
  * should not be used concurrently in separate threads.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public class Input extends InputStream {
 	protected byte[] buffer;
 	protected int position;

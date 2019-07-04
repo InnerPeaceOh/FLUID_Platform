@@ -17,12 +17,12 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.io;
+package android.fluid.kryo.io;
 
 import java.io.IOException;
 import java.io.ObjectOutput;
 
-import com.esotericsoftware.kryo.Kryo;
+import android.fluid.kryo.Kryo;
 
 /** A kryo adapter for the {@link java.io.ObjectOutput} class. Note that this is not a Kryo implementation of
  * {@link java.io.ObjectOutputStream} which has special handling for default serialization and serialization extras like
@@ -30,6 +30,7 @@ import com.esotericsoftware.kryo.Kryo;
  * byte for each time {@link #writeObject(Object)} is invoked since we need to allow unknown null objects.
  *
  * @author Robert DiFalco <robert.difalco@gmail.com> */
+/** @hide */
 public class KryoObjectOutput extends KryoDataOutput implements ObjectOutput {
 
 	private final Kryo kryo;

@@ -17,10 +17,11 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.io;
+package android.fluid.kryo.io;
 
 /** IO package utilities.
  * @author Rafal Wojdyla <ravwojdyla@gmail.com> */
+/** @hide */
 class Util {
 
     //See: https://stackoverflow.com/questions/3038392/do-java-arrays-have-a-maximum-size

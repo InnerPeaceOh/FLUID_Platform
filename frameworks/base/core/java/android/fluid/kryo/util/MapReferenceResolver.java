@@ -17,16 +17,17 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.util;
+package android.fluid.kryo.util;
 
 import java.util.ArrayList;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.ReferenceResolver;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.ReferenceResolver;
 
 /** Uses an {@link IdentityObjectIntMap} to track objects that have already been written. This can handle graph with any number of
  * objects, but is slightly slower than {@link ListReferenceResolver} for graphs with few objects.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public class MapReferenceResolver implements ReferenceResolver {
 	protected Kryo kryo;
 	protected final IdentityObjectIntMap writtenObjects = new IdentityObjectIntMap();

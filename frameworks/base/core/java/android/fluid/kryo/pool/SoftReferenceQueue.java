@@ -17,19 +17,20 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.pool;
+package android.fluid.kryo.pool;
 
 import java.lang.ref.SoftReference;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Queue;
 
-import com.esotericsoftware.kryo.Kryo;
+import android.fluid.kryo.Kryo;
 
 /** Internally uses {@link SoftReference}s for queued Kryo instances, most importantly adjusts the {@link Queue#poll() poll}
  * behavior so that gc'ed Kryo instances are skipped. Most other methods are unsupported.
  *
  * @author Martin Grotzke */
+/** @hide */
 class SoftReferenceQueue implements Queue<Kryo> {
 
 	private Queue<SoftReference<Kryo>> delegate;

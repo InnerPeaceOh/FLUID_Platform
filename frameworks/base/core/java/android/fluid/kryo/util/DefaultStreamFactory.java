@@ -17,19 +17,20 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.util;
+package android.fluid.kryo.util;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.StreamFactory;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.StreamFactory;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
 
 /** StreamFactory which provides usual Input/Output streams, which are present in all versions of Kryo.
  * 
  * @author Roman Levenstein <romixlev@gmail.com> */
+/** @hide */
 public class DefaultStreamFactory implements StreamFactory {
 
 	@Override

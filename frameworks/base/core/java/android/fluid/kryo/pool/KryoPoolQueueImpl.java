@@ -17,15 +17,16 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.pool;
+package android.fluid.kryo.pool;
 
 import java.util.Queue;
 
-import com.esotericsoftware.kryo.Kryo;
+import android.fluid.kryo.Kryo;
 
 /** A simple {@link Queue} based {@link KryoPool} implementation, should be built using the KryoPool.Builder.
  *
  * @author Martin Grotzke */
+/** @hide */
 class KryoPoolQueueImpl implements KryoPool {
 
 	private final Queue<Kryo> queue;

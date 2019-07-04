@@ -17,14 +17,21 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo;
+package android.fluid.kryo;
 
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
+/* mobiledui: start */
+import android.view.View;
+/* mobiledui: end */
 
 /** Reads and writes objects to and from bytes.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public abstract class Serializer<T> {
+	/* mobiledui: start */
+	public void read (Kryo kryo, Input input, Class type, Object object) {}
+	/* mobiledui: end */
 	private boolean acceptsNull, immutable;
 
 	public Serializer () {

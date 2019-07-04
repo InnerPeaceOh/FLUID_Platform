@@ -17,14 +17,13 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.util;
-
-import static com.esotericsoftware.minlog.Log.*;
+package android.fluid.kryo.util;
 
 import java.util.concurrent.ConcurrentHashMap;
 
 /** A few utility methods, mostly for private use.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public class Util {
 
 	static public final boolean IS_ANDROID = "Dalvik".equals(System.getProperty("java.vm.name"));
@@ -42,7 +41,6 @@ public class Util {
 				Class.forName(className);
 				result = true;
 			} catch (Exception e) {
-				debug("kryo", "Class not available: " + className);
 				result = false;
 			}
 			classAvailabilities.put(className, result);
@@ -102,16 +100,9 @@ public class Util {
 	/** Logs a message about an object. The log level and the string format of the object depend on the object type. */
 	static public void log (String message, Object object) {
 		if (object == null) {
-			if (TRACE) trace("kryo", message + ": null");
 			return;
 		}
 		Class type = object.getClass();
-		if (type.isPrimitive() || type == Boolean.class || type == Byte.class || type == Character.class || type == Short.class
-			|| type == Integer.class || type == Long.class || type == Float.class || type == Double.class || type == String.class) {
-			if (TRACE) trace("kryo", message + ": " + string(object));
-		} else {
-			debug("kryo", message + ": " + string(object));
-		}
 	}
 
 	/** Returns the object formatted as a string. The format depends on the object's type and whether {@link Object#toString()} has
@@ -122,13 +113,13 @@ public class Util {
 		if (type.isArray()) return className(type);
 		try {
 			if (type.getMethod("toString", new Class[0]).getDeclaringClass() == Object.class)
-				return TRACE ? className(type) : type.getSimpleName();
+				return className(type);
 		} catch (Exception ignored) {
 		}
 		try {
 			return String.valueOf(object);
 		} catch (Throwable e) {
-			return (TRACE ? className(type) : type.getSimpleName()) + "(Exception " + e + " in toString)";
+			return className(type) + "(Exception " + e + " in toString)";
 		}
 	}
 

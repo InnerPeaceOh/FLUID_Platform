@@ -17,23 +17,23 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
+package android.fluid.kryo.serializers;
 
-import static com.esotericsoftware.kryo.Kryo.*;
-import static com.esotericsoftware.minlog.Log.*;
+import static android.fluid.kryo.Kryo.*;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Modifier;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.Registration;
-import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.Registration;
+import android.fluid.kryo.Serializer;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
 
 /** Contains many serializer classes for specific array types that are provided by {@link Kryo#addDefaultSerializer(Class, Class)
  * default}.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public class DefaultArraySerializers {
 	static public class ByteArraySerializer extends Serializer<byte[]> {
 		{
@@ -325,7 +325,6 @@ public class DefaultArraySerializers {
 			Class elementClass = object.getClass().getComponentType();
 			if (elementsAreSameType || Modifier.isFinal(elementClass.getModifiers())) {
 				Serializer elementSerializer = kryo.getSerializer(elementClass);
-// if(generics!=null)
 				elementSerializer.setGenerics(kryo, generics);
 				for (int i = 0, n = object.length; i < n; i++) {
 					if (elementsCanBeNull)
@@ -334,24 +333,6 @@ public class DefaultArraySerializers {
 						kryo.writeObject(output, object[i], elementSerializer);
 				}
 			} else {
-// Generics genericsScope = null;
-// Class componentType = type;
-// while(componentType.getComponentType() != null) {
-// componentType = componentType.getComponentType();
-// }
-// TypeVariable[] typeVars = type.getComponentType().getTypeParameters();
-// if(typeVars != null && generics != null) {
-// if(TRACE) trace("kryo", "Creating a new GenericsScope for " + type.getName() + " with type vars: " +
-// Arrays.toString(typeVars));
-// genericsScope = new Generics();
-// int i = 0;
-// for(TypeVariable typeVar: typeVars) {
-// genericsScope.add(typeVar.getName(), generics[i]);
-// i++;
-// }
-// kryo.pushGenericsScope(type, genericsScope);
-// }
-//
 				for (int i = 0, n = object.length; i < n; i++) {
 					// Propagate generics?
 					if (object[i] != null) {
@@ -360,9 +341,6 @@ public class DefaultArraySerializers {
 					}
 					kryo.writeClassAndObject(output, object[i]);
 				}
-
-// if(genericsScope != null)
-// kryo.popGenericsScope();
 			}
 		}
 
@@ -374,7 +352,6 @@ public class DefaultArraySerializers {
 			Class elementClass = object.getClass().getComponentType();
 			if (elementsAreSameType || Modifier.isFinal(elementClass.getModifiers())) {
 				Serializer elementSerializer = kryo.getSerializer(elementClass);
-// if(generics!=null)
 				elementSerializer.setGenerics(kryo, generics);
 				for (int i = 0, n = object.length; i < n; i++) {
 					if (elementsCanBeNull)
@@ -418,7 +395,6 @@ public class DefaultArraySerializers {
 		}
 
 		public void setGenerics (Kryo kryo, Class[] generics) {
-			if (TRACE) trace("kryo", "setting generics for ObjectArraySerializer");
 			this.generics = generics;
 		}
 	}

@@ -17,7 +17,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.io;
+package android.fluid.kryo.io;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 /** An OutputStream whose target is a {@link ByteBuffer}. If bytes would be written that would overflow the buffer,
  * {@link #flush()} is called. Subclasses can override flush to empty the buffer.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public class ByteBufferOutputStream extends OutputStream {
 	private ByteBuffer byteBuffer;
 

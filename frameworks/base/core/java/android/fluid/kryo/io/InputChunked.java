@@ -17,17 +17,16 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.io;
-
-import static com.esotericsoftware.minlog.Log.*;
+package android.fluid.kryo.io;
 
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.esotericsoftware.kryo.KryoException;
+import android.fluid.kryo.KryoException;
 
 /** An InputStream that reads lengths and chunks of data from another OutputStream, allowing chunks to be skipped.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public class InputChunked extends Input {
 	private int chunkSize = -1;
 
@@ -85,7 +84,6 @@ public class InputChunked extends Input {
 				result |= (b & 0x7F) << offset;
 				if ((b & 0x80) == 0) {
 					chunkSize = result;
-					if (TRACE) trace("kryo", "Read chunk: " + chunkSize);
 					return;
 				}
 			}
@@ -102,6 +100,5 @@ public class InputChunked extends Input {
 		while (chunkSize > 0)
 			skip(chunkSize);
 		chunkSize = -1;
-		if (TRACE) trace("kryo", "Next chunks.");
 	}
 }

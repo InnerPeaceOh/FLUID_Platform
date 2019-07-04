@@ -17,21 +17,21 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.pool;
+package android.fluid.kryo.pool;
 
 import java.lang.ref.SoftReference;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import com.esotericsoftware.kryo.Kryo;
+import android.fluid.kryo.Kryo;
 
 /** A simple pool interface for {@link Kryo} instances. Use the {@link KryoPool.Builder} to construct a pool instance.
  * 
  * Usage:
  * 
  * <pre>
- * import com.esotericsoftware.kryo.Kryo;
- * import com.esotericsoftware.kryo.pool.*;
+ * import android.fluid.kryo.Kryo;
+ * import android.fluid.kryo.pool.*;
  * 
  * KryoFactory factory = new KryoFactory() {
  *   public Kryo create () {
@@ -56,6 +56,7 @@ import com.esotericsoftware.kryo.Kryo;
  * </pre>
  * 
  * @author Martin Grotzke */
+/** @hide */
 public interface KryoPool {
 
 	/** Takes a {@link Kryo} instance from the pool or creates a new one (using the factory) if the pool is empty. */

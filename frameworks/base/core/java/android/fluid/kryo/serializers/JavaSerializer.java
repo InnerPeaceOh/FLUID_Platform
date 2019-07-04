@@ -17,7 +17,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
+package android.fluid.kryo.serializers;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,13 +25,13 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryo.KryoSerializable;
-import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.util.ObjectMap;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.KryoException;
+import android.fluid.kryo.KryoSerializable;
+import android.fluid.kryo.Serializer;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
+import android.fluid.kryo.util.ObjectMap;
 
 /** Serializes objects using Java's built in serialization mechanism. Note that this is very inefficient and should be avoided if
  * possible.
@@ -39,6 +39,7 @@ import com.esotericsoftware.kryo.util.ObjectMap;
  * @see FieldSerializer
  * @see KryoSerializable
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public class JavaSerializer extends Serializer {
 	public void write (Kryo kryo, Output output, Object object) {
 		try {

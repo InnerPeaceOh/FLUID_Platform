@@ -17,15 +17,16 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.pool;
+package android.fluid.kryo.pool;
 
-import com.esotericsoftware.kryo.Kryo;
+import android.fluid.kryo.Kryo;
 
 /** Callback to run with a provided kryo instance.
  *
  * @author Martin Grotzke
  *
  * @param <T> The type of the result of the interaction with kryo. */
+/** @hide */
 public interface KryoCallback<T> {
 	T execute (Kryo kryo);
 }

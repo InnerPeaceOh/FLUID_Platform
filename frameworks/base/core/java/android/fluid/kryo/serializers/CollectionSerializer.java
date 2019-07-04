@@ -17,7 +17,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
+package android.fluid.kryo.serializers;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -26,10 +26,14 @@ import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.Serializer;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
+
+/* mobiledui: start */
+import java.util.Arrays;
+/* mobiledui: end */
 
 /** Serializes objects that implement the {@link Collection} interface.
  * <p>
@@ -37,7 +41,12 @@ import com.esotericsoftware.kryo.io.Output;
  * collection. The alternate constructor can be used to improve efficiency to match that of using an array instead of a
  * collection.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public class CollectionSerializer extends Serializer<Collection> {
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(CollectionSerializer)";
+    private static final boolean DUI_DEBUG = false;
+	/* mobiledui: end */
 	private boolean elementsCanBeNull = true;
 	private Serializer serializer;
 	private Class elementClass;
@@ -80,6 +89,13 @@ public class CollectionSerializer extends Serializer<Collection> {
 	}
 
 	public void write (Kryo kryo, Output output, Collection collection) {
+		/* mobiledui: start */
+		output.writeVarInt(collection.zObjectId, true);
+		Class clazz = collection.getClass();
+		if ((clazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+			Kryo.installRpcGadget(clazz);
+		/* mobiledui: end */
+
 		int length = collection.size();
 		output.writeVarInt(length, true);
 		Serializer serializer = this.serializer;
@@ -96,9 +112,32 @@ public class CollectionSerializer extends Serializer<Collection> {
 					kryo.writeObject(output, element, serializer);
 			}
 		} else {
-			for (Object element : collection)
-				kryo.writeClassAndObject(output, element);
+//			for (Object element : collection)
+//				kryo.writeClassAndObject(output, element);
+			/* mobiledui: start */
+			for (Object element : collection) {
+				boolean needDummyObj = (element != null && ((element.zFLUIDFlags & Kryo.DUMMY_RESV) != 0));
+				if (needDummyObj) {
+					output.writeVarInt(Kryo.SKIP, true);
+					output.writeVarInt(element.zObjectId, true);
+					Class elemClazz = element.getClass();
+					kryo.writeClass(output, elemClazz);
+					if ((elemClazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+						Kryo.installRpcGadget(elemClazz);
+					element.zFLUIDFlags |= Kryo.DUMMY_IN_REMOTE;
+					element.zFLUIDFlags &= ~Kryo.DUMMY_RESV;
+				}
+				else {
+					output.writeVarInt(Kryo.NO_SKIP, true);
+					kryo.writeClassAndObject(output, element);
+				}
+			}
+			/* mobiledui: end */
 		}
+		/* mobiledui: start */
+		if (collection.zObjectId != 0)
+			collection.zFLUIDFlags |= (Kryo.MIGRATED | Kryo.REMOTE_DEVICE);
+		/* mobiledui: end */
 	}
 
 	/** Used by {@link #read(Kryo, Input, Class)} to create the new object. This can be overridden to customize object creation, eg
@@ -108,6 +147,13 @@ public class CollectionSerializer extends Serializer<Collection> {
 	}
 
 	public Collection read (Kryo kryo, Input input, Class<Collection> type) {
+		/* mobiledui: start */
+		if (type.getName().equals("java.util.Arrays$ArrayList"))
+			return readFixedSizeList(kryo, input, type);
+
+		int objectId = input.readVarInt(true);
+		/* mobiledui: end */
+
 		Collection collection = create(kryo, input, type);
 		kryo.reference(collection);
 		int length = input.readVarInt(true);
@@ -130,11 +176,103 @@ public class CollectionSerializer extends Serializer<Collection> {
 					collection.add(kryo.readObject(input, elementClass, serializer));
 			}
 		} else {
-			for (int i = 0; i < length; i++)
-				collection.add(kryo.readClassAndObject(input));
+//			for (int i = 0; i < length; i++)
+//				collection.add(kryo.readClassAndObject(input));
+			/* mobiledui: start */
+			for (int i = 0; i < length; i++) {
+				boolean needDummyObj = (input.readVarInt(true) == Kryo.SKIP);
+				if (needDummyObj) {
+					int elemObjId = input.readVarInt(true);
+					Class elemClazz = kryo.readClass(input).getType();
+					Object element = kryo.newInstance(elemClazz);
+					if ((elemClazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+						Kryo.installRpcGadget(elemClazz);
+					element.zFLUIDFlags |= Kryo.DUMMY_OBJECT;
+					element.zObjectId = elemObjId;
+					if (kryo.mIdToObj.get(elemObjId) == null)
+						kryo.mIdToObj.put(elemObjId, element);
+					collection.add(element);
+				}
+				else
+					collection.add(kryo.readClassAndObject(input));
+			}
+			/* mobiledui: end */
 		}
+
+		/* mobiledui: start */
+		if (objectId != 0) {
+			collection.zObjectId = objectId;
+			collection.zFLUIDFlags |= Kryo.MIGRATED;
+			kryo.mIdToObj.put(objectId, collection);
+		}
+		Class clazz = collection.getClass();
+		if ((clazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+			Kryo.installRpcGadget(clazz);
+		/* mobiledui: end */
+
 		return collection;
 	}
+
+	/* mobiledui: start */
+	public Collection readFixedSizeList(Kryo kryo, Input input, Class<Collection> type) {
+		int objectId = input.readVarInt(true);
+
+		Collection collection = kryo.newInstance(ArrayList.class);
+		int length = input.readVarInt(true);
+		if (collection instanceof ArrayList) ((ArrayList)collection).ensureCapacity(length);
+		Class elementClass = this.elementClass;
+		Serializer serializer = this.serializer;
+		if (genericType != null) {
+			if (serializer == null) {
+				elementClass = genericType;
+				serializer = kryo.getSerializer(genericType);
+			}
+			genericType = null;
+		}
+		if (serializer != null) {
+			if (elementsCanBeNull) {
+				for (int i = 0; i < length; i++)
+					collection.add(kryo.readObjectOrNull(input, elementClass, serializer));
+			} else {
+				for (int i = 0; i < length; i++)
+					collection.add(kryo.readObject(input, elementClass, serializer));
+			}
+		} else {
+//			for (int i = 0; i < length; i++)
+//				collection.add(kryo.readClassAndObject(input));
+			for (int i = 0; i < length; i++) {
+				boolean needDummyObj = (input.readVarInt(true) == Kryo.SKIP);
+				if (needDummyObj) {
+					int elemObjId = input.readVarInt(true);
+					Class elemClazz = kryo.readClass(input).getType();
+					Object element = kryo.newInstance(elemClazz);
+					if ((elemClazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+						Kryo.installRpcGadget(elemClazz);
+					element.zFLUIDFlags |= Kryo.DUMMY_OBJECT;
+					element.zObjectId = elemObjId;
+					if (kryo.mIdToObj.get(elemObjId) == null)
+						kryo.mIdToObj.put(elemObjId, element);
+					collection.add(element);
+				}
+				else
+					collection.add(kryo.readClassAndObject(input));
+			}
+		}
+		Object[] arr = collection.toArray();
+
+		collection = Arrays.asList(arr);
+		if (objectId != 0) {
+			collection.zObjectId = objectId;
+			collection.zFLUIDFlags |= Kryo.MIGRATED;
+			kryo.mIdToObj.put(objectId, collection);
+		}
+		Class clazz = collection.getClass();
+		if ((clazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+			Kryo.installRpcGadget(clazz);
+
+		return collection;
+	}
+	/* mobiledui: end */
 
 	/** Used by {@link #copy(Kryo, Collection)} to create the new object. This can be overridden to customize object creation, eg
 	 * to call a constructor with arguments. The default implementation uses {@link Kryo#newInstance(Class)}. */

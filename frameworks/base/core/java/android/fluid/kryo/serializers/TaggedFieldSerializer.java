@@ -17,9 +17,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
-
-import static com.esotericsoftware.minlog.Log.*;
+package android.fluid.kryo.serializers;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -29,12 +27,12 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Comparator;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.InputChunked;
-import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.io.OutputChunked;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.KryoException;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.InputChunked;
+import android.fluid.kryo.io.Output;
+import android.fluid.kryo.io.OutputChunked;
 
 /** Serializes objects using direct field assignment for fields that have a <code>@Tag(int)</code> annotation. This provides
  * backward compatibility so new fields can be added. TaggedFieldSerializer has two advantages over {@link VersionFieldSerializer}
@@ -55,6 +53,7 @@ import com.esotericsoftware.kryo.io.OutputChunked;
  * thrown by {@link Kryo#register(Class)} (and its overloads) if duplicate Tag values are encountered.
  * @see VersionFieldSerializer
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public class TaggedFieldSerializer<T> extends FieldSerializer<T> {
 	private int[] tags;
 	private int writeFieldCount;
@@ -95,7 +94,6 @@ public class TaggedFieldSerializer<T> extends FieldSerializer<T> {
 		for (int i = 0, n = fields.length; i < n; i++) {
 			Field field = fields[i].getField();
 			if (field.getAnnotation(Tag.class) == null) {
-				if (TRACE) trace("kryo", "Ignoring field without tag: " + fields[i]);
 				super.removeField(fields[i]);
 			}
 		}
@@ -175,8 +173,6 @@ public class TaggedFieldSerializer<T> extends FieldSerializer<T> {
 				if (isSkipUnknownTags()) {
 					if (inputChunked == null) inputChunked = new InputChunked(input, 1024);
 					inputChunked.nextChunks(); // assume future annexed field and skip
-					if (TRACE) trace(String.format("Unknown field tag: %d (%s) encountered. Assuming a future annexed " +
-									"tag with chunked encoding and skipping.", tag, getType().getName()));
 				} else
 					throw new KryoException("Unknown field tag: " + tag + " (" + getType().getName() + ")");
 			} else if (isAnnexed){

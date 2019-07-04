@@ -17,12 +17,13 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo;
+package android.fluid.kryo;
 
 /** Allows implementing classes to perform their own copying. Hand written copying can be more efficient in some cases.
  * <p>
  * This method is used instead of the registered serializer {@link Serializer#copy(Kryo, Object)} method.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public interface KryoCopyable<T> {
 	/** Returns a copy that has the same values as this object. Before Kryo can be used to copy child objects,
 	 * {@link Kryo#reference(Object)} must be called with the copy to ensure it can be referenced by the child objects.

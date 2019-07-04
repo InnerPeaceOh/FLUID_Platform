@@ -17,18 +17,19 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.io;
+package android.fluid.kryo.io;
 
 import java.io.DataInput;
 import java.io.EOFException;
 import java.io.IOException;
 
-import com.esotericsoftware.kryo.KryoException;
+import android.fluid.kryo.KryoException;
 
 /** Best attempt adapter for {@link DataInput}. Currently only {@link #readLine()} is unsupported. Other methods behave slightly
  * differently. For example, {@link #readUTF()} may return a null string.
  *
  * @author Robert DiFalco <robert.difalco@gmail.com> */
+/** @hide */
 public class KryoDataInput implements DataInput {
 
 	protected Input input;
@@ -107,9 +108,9 @@ public class KryoDataInput implements DataInput {
 	}
 
 	/** Reads the length and string of UTF8 characters, or null. This can read strings written by
-	 * {@link KryoDataOutput#writeUTF(String)}, {@link com.esotericsoftware.kryo.io.Output#writeString(String)},
-	 * {@link com.esotericsoftware.kryo.io.Output#writeString(CharSequence)}, and
-	 * {@link com.esotericsoftware.kryo.io.Output#writeAscii(String)}.
+	 * {@link KryoDataOutput#writeUTF(String)}, {@link android.fluid.kryo.io.Output#writeString(String)},
+	 * {@link android.fluid.kryo.io.Output#writeString(CharSequence)}, and
+	 * {@link android.fluid.kryo.io.Output#writeAscii(String)}.
 	 *
 	 * @return May be null. */
 	public String readUTF () throws IOException {

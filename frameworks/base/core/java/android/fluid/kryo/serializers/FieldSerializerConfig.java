@@ -17,19 +17,21 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
+package android.fluid.kryo.serializers;
 
-import static com.esotericsoftware.minlog.Log.*;
-
-import com.esotericsoftware.kryo.Kryo;
+import android.fluid.kryo.Kryo;
 
 /** Configuration for FieldSerializer instances. To configure defaults for new FieldSerializer instances use
  * {@link Kryo#getFieldSerializerConfig()}, to configure a specific FieldSerializer instance use setters for configuration
  * settings on this specific FieldSerializer. */
+/** @hide */
 public class FieldSerializerConfig implements Cloneable {
 
 	private boolean fieldsCanBeNull = true, setFieldsAsAccessible = true;
-	private boolean ignoreSyntheticFields = true;
+	//private boolean ignoreSyntheticFields = true;
+	/* mobiledui: start */
+	private boolean ignoreSyntheticFields = false;
+	/* mobiledui: end */
 	private boolean fixedFieldTypes;
 	/** If set, ASM-backend is used. Otherwise Unsafe-based backend or reflection is used */
 	private boolean useAsm;
@@ -44,7 +46,6 @@ public class FieldSerializerConfig implements Cloneable {
 
 	{
 		useAsm = !FieldSerializer.unsafeAvailable;
-		if (TRACE) trace("kryo.FieldSerializerConfig", "useAsm: " + useAsm);
 	}
 
 	@Override
@@ -61,7 +62,6 @@ public class FieldSerializerConfig implements Cloneable {
 	 * @param fieldsCanBeNull False if none of the fields are null. Saves 0-1 byte per field. True if it is not known (default). */
 	public void setFieldsCanBeNull (boolean fieldsCanBeNull) {
 		this.fieldsCanBeNull = fieldsCanBeNull;
-		if (TRACE) trace("kryo.FieldSerializerConfig", "setFieldsCanBeNull: " + fieldsCanBeNull);
 	}
 
 	/** Controls which fields are serialized.
@@ -70,14 +70,12 @@ public class FieldSerializerConfig implements Cloneable {
 	 *           fields in the public API will be serialized. */
 	public void setFieldsAsAccessible (boolean setFieldsAsAccessible) {
 		this.setFieldsAsAccessible = setFieldsAsAccessible;
-		if (TRACE) trace("kryo.FieldSerializerConfig", "setFieldsAsAccessible: " + setFieldsAsAccessible);
 	}
 
 	/** Controls if synthetic fields are serialized. Default is true.
 	 * @param ignoreSyntheticFields If true, only non-synthetic fields will be serialized. */
 	public void setIgnoreSyntheticFields (boolean ignoreSyntheticFields) {
 		this.ignoreSyntheticFields = ignoreSyntheticFields;
-		if (TRACE) trace("kryo.FieldSerializerConfig", "setIgnoreSyntheticFields: " + ignoreSyntheticFields);
 	}
 
 	/** Sets the default value for {@link FieldSerializer.CachedField#setClass(Class)} to the field's declared type. This allows
@@ -85,7 +83,6 @@ public class FieldSerializerConfig implements Cloneable {
 	 * false. */
 	public void setFixedFieldTypes (boolean fixedFieldTypes) {
 		this.fixedFieldTypes = fixedFieldTypes;
-		if (TRACE) trace("kryo.FieldSerializerConfig", "setFixedFieldTypes: " + fixedFieldTypes);
 	}
 
 	/** Controls whether ASM should be used.
@@ -94,9 +91,7 @@ public class FieldSerializerConfig implements Cloneable {
 		useAsm = setUseAsm;
 		if (!useAsm && !FieldSerializer.unsafeAvailable) {
 			useAsm = true;
-			if (TRACE) trace("kryo.FieldSerializerConfig", "sun.misc.Unsafe is unavailable, using ASM.");
 		}
-		if (TRACE) trace("kryo.FieldSerializerConfig", "setUseAsm: " + setUseAsm);
 	}
 
 	/** Controls if the serialization of generics should be optimized for smaller size.
@@ -107,7 +102,6 @@ public class FieldSerializerConfig implements Cloneable {
 	 * @param setOptimizedGenerics If true, the serialization of generics will be optimize for smaller size (default: false) */
 	public void setOptimizedGenerics (boolean setOptimizedGenerics) {
 		optimizedGenerics = setOptimizedGenerics;
-		if (TRACE) trace("kryo.FieldSerializerConfig", "setOptimizedGenerics: " + setOptimizedGenerics);
 	}
 
 	/** If false, when {@link Kryo#copy(Object)} is called all transient fields that are accessible will be ignored from being
@@ -161,6 +155,5 @@ public class FieldSerializerConfig implements Cloneable {
 
 	public void setCachedFieldNameStrategy (FieldSerializer.CachedFieldNameStrategy cachedFieldNameStrategy) {
 		this.cachedFieldNameStrategy = cachedFieldNameStrategy;
-		if (TRACE) trace("kryo.FieldSerializerConfig", "CachedFieldNameStrategy: " + cachedFieldNameStrategy);
 	}
 }

@@ -17,19 +17,20 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
+package android.fluid.kryo.serializers;
 
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Map;
 
-import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.factories.ReflectionSerializerFactory;
-import com.esotericsoftware.kryo.serializers.FieldSerializer.CachedField;
+import android.fluid.kryo.Serializer;
+import android.fluid.kryo.factories.ReflectionSerializerFactory;
+import android.fluid.kryo.serializers.FieldSerializer.CachedField;
 
 /** A few utility methods for processing field annotations.
  * 
  * @author Roman Levenstein <romixlev@gmail.com> */
+/** @hide */
 final class FieldSerializerAnnotationsUtil {
 	public FieldSerializerAnnotationsUtil (FieldSerializer serializer) {
 	}

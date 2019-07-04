@@ -17,22 +17,23 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
+package android.fluid.kryo.serializers;
 
-import static com.esotericsoftware.kryo.util.Util.*;
+import static android.fluid.kryo.util.Util.*;
 
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.Serializer;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
 
 /** Serializers for {@link Optional}, {@link OptionalInt}, {@link OptionalLong} and {@link OptionalDouble}. Are added as default
  * serializers for java >= 1.8. */
+/** @hide */
 public final class OptionalSerializers {
 
 	public static void addDefaultSerializers (Kryo kryo) {

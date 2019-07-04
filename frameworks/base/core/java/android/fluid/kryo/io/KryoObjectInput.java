@@ -17,17 +17,18 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.io;
+package android.fluid.kryo.io;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 
-import com.esotericsoftware.kryo.Kryo;
+import android.fluid.kryo.Kryo;
 
 /** A kryo implementation of {@link ObjectInput}. Note that this is not an implementation of {@link java.io.ObjectInputStream}
  * which has special handling for serialization in Java such as support for readResolve.
  *
  * @author Robert DiFalco <robert.difalco@gmail.com> */
+/** @hide */
 public class KryoObjectInput extends KryoDataInput implements ObjectInput {
 
 	private final Kryo kryo;

@@ -17,23 +17,32 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
+package android.fluid.kryo.serializers;
 
-import static com.esotericsoftware.minlog.Log.*;
-
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryo.Registration;
-import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.serializers.FieldSerializer.CachedField;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.KryoException;
+import android.fluid.kryo.Registration;
+import android.fluid.kryo.Serializer;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
+import android.fluid.kryo.serializers.FieldSerializer.CachedField;
 import com.esotericsoftware.reflectasm.FieldAccess;
+
+/* mobiledui: start */
+import android.util.Log;
+import java.lang.reflect.Array;
+/* mobiledui: end */
 
 /*** Defer generation of serializers until it is really required at run-time. By default, use reflection-based approach.
  * @author Nathan Sweet <misc@n4te.com>
  * @author Roman Levenstein <romixlev@gmail.com> */
+/** @hide */
 class ObjectField extends CachedField {
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(ObjectField)";
+    private static final boolean DUI_DEBUG = false;
+	/* mobiledui: end */
+
 	public Class[] generics;
 	final FieldSerializer fieldSerializer;
 	final Class type;
@@ -55,33 +64,107 @@ class ObjectField extends CachedField {
 
 	public void write (Output output, Object object) {
 		try {
-			// if(typeVar2concreteClass != null) {
-			// // Push a new scope for generics
-			// kryo.pushGenericsScope(type, new Generics(typeVar2concreteClass));
-			// }
-
-			if (TRACE)
-				trace("kryo", "Write field: " + this + " (" + object.getClass().getName() + ")" + " pos=" + output.position());
-
 			Object value = getField(object);
+
+			/* mobiledui: start */
+			if (DUI_DEBUG) {
+				Log.d(DUI_TAG, "write() start, depth = " + kryo.mDepth
+						+ ", field = " + field.getName() 
+						+ ", field type = " + field.getType()
+						+ ", field.isSynthetic = " + field.isSynthetic()
+						+ ", value = " + ((value != null)? value.getClass() : "null")
+						+ ", duiFlags = " + ((value != null)? value.zFLUIDFlags : "null")
+						+ ", objectId = " + ((value != null)? value.zObjectId : "null")
+						+ ", pos = " + output.position());
+			}
+			kryo.mDepth++;
+
+			boolean needDummyObj1 = (value != null 
+					&& kryo.needPartialMigration(field.getType()) 
+					&& kryo.needPartialMigration(value.getClass())
+					&& !kryo.isRenderingObj(type, field.getName())
+					&& !kryo.mTargetObjIds.contains(value.zObjectId));
+			boolean needDummyObj2 = (value != null && ((value.zFLUIDFlags & Kryo.DUMMY_RESV) != 0));
+
+			if (DUI_DEBUG) {
+				Log.d(DUI_TAG, "write() needDummyObj1 = " + needDummyObj1 + ", needDummyObj2 = " + needDummyObj2);
+				if (value != null) {
+					Log.d(DUI_TAG, "" + kryo.needPartialMigration(field.getType())
+							+ ", " + kryo.needPartialMigration(value.getClass())
+							+ ", " + kryo.isRenderingObj(type, field.getName())
+							+ ", " + kryo.mTargetObjIds.contains(value.zObjectId));
+				}
+			}
+
+			if (Kryo.mPartialMode && (needDummyObj1 || needDummyObj2)) {
+				// In the remote device, a dummy object for this field will be created.
+				Class clazz = value.getClass();
+				output.writeVarInt(Kryo.SKIP, true);
+				output.writeVarInt(value.zObjectId, true);
+				if (valueClass == null)
+					kryo.writeClass(output, clazz);
+
+				// If this filed is array type, dummy objects for its elements will be created.
+				if (clazz.isArray()) {
+					Object[] arr = (Object[])value;
+					int length = arr.length;
+					output.writeVarInt(length, true);
+					for (int i = 0; i < length; i++) {
+						if (arr[i] != null) {
+							Class elemClazz = arr[i].getClass();
+							output.writeVarInt(Kryo.NOT_NULL, true);
+							output.writeVarInt(arr[i].zObjectId, true);
+							kryo.writeClass(output, elemClazz);
+
+							if ((elemClazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+								Kryo.installRpcGadget(elemClazz);
+							arr[i].zFLUIDFlags |= Kryo.DUMMY_IN_REMOTE;
+						}
+						else
+							output.writeVarInt(Kryo.NULL, true);
+					}
+				}
+				else {
+					if ((clazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+						Kryo.installRpcGadget(clazz);
+				}
+				value.zFLUIDFlags |= Kryo.DUMMY_IN_REMOTE;
+				value.zFLUIDFlags &= ~Kryo.DUMMY_RESV;
+
+				kryo.mDepth--;
+				if (DUI_DEBUG) {
+					Log.d(DUI_TAG, "write() end 2, depth = " + kryo.mDepth 
+							+ ", field = " + field.getName());
+				}
+				return;
+			}
+			else 
+				output.writeVarInt(Kryo.NO_SKIP, true);
+			/* mobiledui: end */
 
 			Serializer serializer = this.serializer;
 			if (valueClass == null) {
 				// The concrete type of the field is unknown, write the class first.
 				if (value == null) {
 					kryo.writeClass(output, null);
+					/* mobiledui: start */
+					kryo.mDepth--;
+					if (DUI_DEBUG) 
+						Log.d(DUI_TAG, "write() end 3, depth = " + kryo.mDepth + ", field = " + field.getName());
+					/* mobiledui: end */
 					return;
 				}
 				Registration registration = kryo.writeClass(output, value.getClass());
 				if (serializer == null) serializer = registration.getSerializer();
-				// if (generics != null)
 				serializer.setGenerics(kryo, generics);
+
 				kryo.writeObject(output, value, serializer);
 			} else {
 				// The concrete type of the field is known, always use the same serializer.
 				if (serializer == null) this.serializer = serializer = kryo.getSerializer(valueClass);
 				// if (generics != null)
 				serializer.setGenerics(kryo, generics);
+
 				if (canBeNull) {
 					kryo.writeObjectOrNull(output, value, serializer);
 				} else {
@@ -105,12 +188,73 @@ class ObjectField extends CachedField {
 			// if(typeVar2concreteClass != null)
 			// kryo.popGenericsScope();
 		}
+
+		/* mobiledui: start */
+		kryo.mDepth--;
+		if (DUI_DEBUG) 
+			Log.d(DUI_TAG, "write() end, depth = " + kryo.mDepth + ", field = " + field.getName() + ", pos = " + output.position());
+		/* mobiledui: end */
 	}
 
 	public void read (Input input, Object object) {
 		try {
-			if (TRACE) trace("kryo", "Read field: " + this + " (" + type.getName() + ")" + " pos=" + input.position());
 			Object value;
+
+			/* mobiledui: start */
+			if (DUI_DEBUG) {
+				Log.d(DUI_TAG, "read() start, depth = " + kryo.mDepth
+						+ ", field = " + field.getName() 
+						+ ", field type = " + field.getType()
+						+ ", pos = " + input.position());
+			}
+			kryo.mDepth++;
+
+			boolean needDummyObj = (input.readVarInt(true) == Kryo.SKIP);
+
+			if (needDummyObj) {
+				int objectId = input.readVarInt(true);
+				// TODO: it's correct?
+				//if (kryo.mTargetObjIds.contains(objectId)) {
+				//	return;
+				//}
+				Class clazz = (valueClass != null)? valueClass : kryo.readClass(input).getType();
+
+				// If this filed is array type, dummy objects for its elements will be created.
+				if (clazz.isArray()) {
+					int length = input.readVarInt(true);
+					Object[] arr = (Object[])Array.newInstance(clazz.getComponentType(), length);
+					for (int i = 0; i < length; i++) {
+						if (input.readVarInt(true) == 1) {
+							int elemObjId = input.readVarInt(true);
+							Class elemClazz = kryo.readClass(input).getType();
+							arr[i] = kryo.newInstance(elemClazz);
+							if ((elemClazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+								Kryo.installRpcGadget(elemClazz);
+							arr[i].zFLUIDFlags |= Kryo.DUMMY_OBJECT;
+							arr[i].zObjectId = elemObjId;
+							if (kryo.mIdToObj.get(elemObjId) == null)
+								kryo.mIdToObj.put(elemObjId, arr[i]);
+						}
+					}
+					value = (Object)arr;
+				}
+				else {
+					value = kryo.newInstance(clazz);
+					if ((clazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+						Kryo.installRpcGadget(clazz);
+				}
+				value.zFLUIDFlags |= Kryo.DUMMY_OBJECT;
+				value.zObjectId = objectId;
+				if (kryo.mIdToObj.get(objectId) == null)
+					kryo.mIdToObj.put(objectId, value);
+				setField(object, value);
+
+				kryo.mDepth--;
+				if (DUI_DEBUG) 
+					Log.d(DUI_TAG, "read() end 2, depth = " + kryo.mDepth + ", field = " + field.getName() + ", objectId = " + value.zObjectId + ", duiFlags = " + value.zFLUIDFlags);
+				return;
+			}
+			/* mobiledui: end */
 
 			Class concreteType = valueClass;
 			Serializer serializer = this.serializer;
@@ -120,13 +264,11 @@ class ObjectField extends CachedField {
 					value = null;
 				else {
 					if (serializer == null) serializer = registration.getSerializer();
-					// if (generics != null)
 					serializer.setGenerics(kryo, generics);
 					value = kryo.readObject(input, registration.getType(), serializer);
 				}
 			} else {
 				if (serializer == null) this.serializer = serializer = kryo.getSerializer(valueClass);
-				// if (generics != null)
 				serializer.setGenerics(kryo, generics);
 				if (canBeNull)
 					value = kryo.readObjectOrNull(input, concreteType, serializer);
@@ -135,6 +277,17 @@ class ObjectField extends CachedField {
 			}
 
 			setField(object, value);
+			/* mobiledui: start */
+			kryo.mDepth--;
+			if (DUI_DEBUG) {
+				Log.d(DUI_TAG, "read() end, depth = " + kryo.mDepth
+						+ ", field = " + field.getName() 
+						+ ", value = " + ((value != null)? value.getClass() : "null")
+						+ ", zFLUIDFlags = " + ((value != null)? value.zFLUIDFlags : "null")
+						+ ", zObjectId = " + ((value != null)? value.zObjectId : "null")
+						+ ", pos = " + input.position());
+			}
+			/* mobiledui: end */
 		} catch (IllegalAccessException ex) {
 			throw new KryoException("Error accessing field: " + this + " (" + type.getName() + ")", ex);
 		} catch (KryoException ex) {
@@ -149,6 +302,7 @@ class ObjectField extends CachedField {
 			// kryo.popGenericsScope();
 		}
 	}
+	/* mobiledui: end */
 
 	public void copy (Object original, Object copy) {
 		try {

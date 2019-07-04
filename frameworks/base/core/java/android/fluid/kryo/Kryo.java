@@ -17,10 +17,9 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo;
+package android.fluid.kryo;
 
-import static com.esotericsoftware.kryo.util.Util.*;
-import static com.esotericsoftware.minlog.Log.*;
+import static android.fluid.kryo.util.Util.*;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
@@ -44,80 +43,111 @@ import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.objenesis.instantiator.ObjectInstantiator;
-import org.objenesis.strategy.InstantiatorStrategy;
-import org.objenesis.strategy.SerializingInstantiatorStrategy;
-import org.objenesis.strategy.StdInstantiatorStrategy;
+import android.fluid.objenesis.instantiator.ObjectInstantiator;
+import android.fluid.objenesis.strategy.InstantiatorStrategy;
+import android.fluid.objenesis.strategy.SerializingInstantiatorStrategy;
+import android.fluid.objenesis.strategy.StdInstantiatorStrategy;
 
-import com.esotericsoftware.kryo.factories.PseudoSerializerFactory;
-import com.esotericsoftware.kryo.factories.ReflectionSerializerFactory;
-import com.esotericsoftware.kryo.factories.SerializerFactory;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.serializers.ClosureSerializer;
-import com.esotericsoftware.kryo.serializers.CollectionSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultArraySerializers.BooleanArraySerializer;
-import com.esotericsoftware.kryo.serializers.DefaultArraySerializers.ByteArraySerializer;
-import com.esotericsoftware.kryo.serializers.DefaultArraySerializers.CharArraySerializer;
-import com.esotericsoftware.kryo.serializers.DefaultArraySerializers.DoubleArraySerializer;
-import com.esotericsoftware.kryo.serializers.DefaultArraySerializers.FloatArraySerializer;
-import com.esotericsoftware.kryo.serializers.DefaultArraySerializers.IntArraySerializer;
-import com.esotericsoftware.kryo.serializers.DefaultArraySerializers.LongArraySerializer;
-import com.esotericsoftware.kryo.serializers.DefaultArraySerializers.ObjectArraySerializer;
-import com.esotericsoftware.kryo.serializers.DefaultArraySerializers.ShortArraySerializer;
-import com.esotericsoftware.kryo.serializers.DefaultArraySerializers.StringArraySerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.BigDecimalSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.BigIntegerSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.BooleanSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.ByteSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.CalendarSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.CharSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.CharsetSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.ClassSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.CollectionsEmptyListSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.CollectionsEmptyMapSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.CollectionsEmptySetSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.CollectionsSingletonListSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.CollectionsSingletonMapSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.CollectionsSingletonSetSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.CurrencySerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.DateSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.DoubleSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.EnumSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.EnumSetSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.FloatSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.IntSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.KryoSerializableSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.LocaleSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.LongSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.ShortSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.StringBufferSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.StringBuilderSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.StringSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.TimeZoneSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.TreeMapSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.TreeSetSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.URLSerializer;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.VoidSerializer;
-import com.esotericsoftware.kryo.serializers.FieldSerializer;
-import com.esotericsoftware.kryo.serializers.FieldSerializerConfig;
-import com.esotericsoftware.kryo.serializers.GenericsResolver;
-import com.esotericsoftware.kryo.serializers.MapSerializer;
-import com.esotericsoftware.kryo.serializers.OptionalSerializers;
-import com.esotericsoftware.kryo.serializers.TaggedFieldSerializerConfig;
-import com.esotericsoftware.kryo.serializers.TimeSerializers;
-import com.esotericsoftware.kryo.util.DefaultClassResolver;
-import com.esotericsoftware.kryo.util.DefaultStreamFactory;
-import com.esotericsoftware.kryo.util.IdentityMap;
-import com.esotericsoftware.kryo.util.IntArray;
-import com.esotericsoftware.kryo.util.MapReferenceResolver;
-import com.esotericsoftware.kryo.util.ObjectMap;
-import com.esotericsoftware.kryo.util.Util;
+import android.fluid.kryo.factories.PseudoSerializerFactory;
+import android.fluid.kryo.factories.ReflectionSerializerFactory;
+import android.fluid.kryo.factories.SerializerFactory;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
+import android.fluid.kryo.serializers.ClosureSerializer;
+import android.fluid.kryo.serializers.CollectionSerializer;
+import android.fluid.kryo.serializers.DefaultArraySerializers.BooleanArraySerializer;
+import android.fluid.kryo.serializers.DefaultArraySerializers.ByteArraySerializer;
+import android.fluid.kryo.serializers.DefaultArraySerializers.CharArraySerializer;
+import android.fluid.kryo.serializers.DefaultArraySerializers.DoubleArraySerializer;
+import android.fluid.kryo.serializers.DefaultArraySerializers.FloatArraySerializer;
+import android.fluid.kryo.serializers.DefaultArraySerializers.IntArraySerializer;
+import android.fluid.kryo.serializers.DefaultArraySerializers.LongArraySerializer;
+import android.fluid.kryo.serializers.DefaultArraySerializers.ObjectArraySerializer;
+import android.fluid.kryo.serializers.DefaultArraySerializers.ShortArraySerializer;
+import android.fluid.kryo.serializers.DefaultArraySerializers.StringArraySerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.BigDecimalSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.BigIntegerSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.BooleanSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.ByteSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.CalendarSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.CharSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.CharsetSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.ClassSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.CollectionsEmptyListSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.CollectionsEmptyMapSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.CollectionsEmptySetSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.CollectionsSingletonListSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.CollectionsSingletonMapSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.CollectionsSingletonSetSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.CurrencySerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.DateSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.DoubleSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.EnumSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.EnumSetSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.FloatSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.IntSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.KryoSerializableSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.LocaleSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.LongSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.ShortSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.StringBufferSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.StringBuilderSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.StringSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.TimeZoneSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.TreeMapSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.TreeSetSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.URLSerializer;
+import android.fluid.kryo.serializers.DefaultSerializers.VoidSerializer;
+import android.fluid.kryo.serializers.FieldSerializer;
+import android.fluid.kryo.serializers.FieldSerializerConfig;
+import android.fluid.kryo.serializers.GenericsResolver;
+import android.fluid.kryo.serializers.MapSerializer;
+import android.fluid.kryo.serializers.OptionalSerializers;
+import android.fluid.kryo.serializers.TaggedFieldSerializerConfig;
+import android.fluid.kryo.serializers.TimeSerializers;
+import android.fluid.kryo.util.DefaultClassResolver;
+import android.fluid.kryo.util.DefaultStreamFactory;
+import android.fluid.kryo.util.IdentityMap;
+import android.fluid.kryo.util.IntArray;
+import android.fluid.kryo.util.MapReferenceResolver;
+import android.fluid.kryo.util.ObjectMap;
+import android.fluid.kryo.util.Util;
 import com.esotericsoftware.reflectasm.ConstructorAccess;
+
+/* mobiledui: start */
+import java.lang.reflect.Method;
+import java.lang.reflect.Field;
+import java.lang.ref.WeakReference;
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.Reference;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.File;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Map.Entry;
+import libcore.reflect.Types;
+import dalvik.system.DexClassLoader;
+import android.util.Log;
+import android.app.Activity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
+import android.os.Handler;
+import android.content.Context;
+import android.content.res.Resources;
+/* mobiledui: end */
 
 /** Maps classes to serializers so object graphs can be serialized automatically.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public class Kryo {
+
 	static public final byte NULL = 0;
 	static public final byte NOT_NULL = 1;
 
@@ -156,6 +186,443 @@ public class Kryo {
 
 	private StreamFactory streamFactory;
 
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(Kryo)";
+    private static final boolean DUI_DEBUG = false;
+	static public final int NONE = 0;
+	static public final int OUTER_CONTEXT = 1;
+	static public final int INNER_CONTEXT = 2;
+	static public final int MIGRATED = 0x00010000;
+	static public final int RPC_INSTALLED = 0x00100000;
+	static public final int DUMMY_OBJECT = 0x01000000;
+	static public final int DUMMY_RESV = 0x02000000;
+	static public final int DUMMY_IN_REMOTE = 0x10000000;
+	static public final int REMOTE_DEVICE = 0x00000001;
+	static public final int SKIP = 0;
+	static public final int NO_SKIP = 1;
+
+	public HashSet<String> transientClassSet = new HashSet<String>();
+	public DexClassLoader mDexLoader;
+	public Context mAppContext;	// Outer context (Activity)
+	public View mDecor;
+	public WindowManager mWindowManager;
+	public Window mWindow;
+	public Resources mResources;
+
+	private int mNextId = 1;
+	public HashMap<Integer, Object> mIdToObj;
+	static public boolean mPartialMode = false;
+	public HashSet<Integer> mTargetObjIds = new HashSet<Integer>();
+	public HashMap<String, HashMap<String, HashSet<String>>> mAnalysisData = new HashMap<String, HashMap<String, HashSet<String>>>();
+	public HashMap<String, HashSet<String>> mRenderingObjs;
+	public int mDepth = 0;
+
+	public void useAnalysisResult() {
+		try {
+			File analysisDir = new File("data/local/tmp/rendering_analysis");
+			File[] fileList = analysisDir.listFiles();
+			for (int i = 0; i < fileList.length; i++) {
+				File file = fileList[i];
+
+				HashMap<String, HashSet<String>> metadata = new HashMap<String, HashSet<String>>();
+				BufferedReader in = new BufferedReader(new FileReader(file));
+				String str = null;
+				Class clazz = null;
+				String clazzName = null;
+				HashSet<String> fieldNames = null;
+				while ((str = in.readLine()) != null) {
+					if (str.startsWith("</") && str.endsWith(">")) {
+						assert clazzName.equals(str.substring(2, str.length() - 1));
+						metadata.put(clazzName, fieldNames);
+						clazz = null;
+					}
+					else if (str.startsWith("<") && str.endsWith(">")) {
+						assert clazz == null;
+						clazzName = str.substring(1, str.length() - 1);
+						fieldNames = new HashSet<String>();
+					}
+					else {
+						assert fieldNames != null;
+						fieldNames.add(str);
+					}
+				}
+				mAnalysisData.put(file.getName(), metadata);
+			}
+		} catch (Exception e) { e.printStackTrace(); }
+	}
+
+	public void findRenderingObjs(Object headObj) {
+		if (!needPartialMigration(headObj.getClass())) 
+			return;
+		Queue<Object> queue = new LinkedList<Object>();
+		HashSet<Integer> visited = new HashSet<Integer>();
+		ArrayList<Object> dummyCandidates = new ArrayList<Object>();
+		ArrayList<Object> syntheticFields = new ArrayList<Object>();
+
+		if (headObj.zObjectId == 0) {
+			headObj.zObjectId = assignObjId();
+			mIdToObj.put(headObj.zObjectId, headObj);
+		}
+		queue.add(headObj);
+		if(!isRenderingObj(headObj.getClass()))
+			return;
+		mTargetObjIds.add(headObj.zObjectId);
+		try {
+			while (!queue.isEmpty()) {
+				Object obj = queue.poll();
+				if (visited.contains(obj.zObjectId)) 
+					continue;
+				visited.add(obj.zObjectId);
+				Class clazz = obj.getClass();
+				while (clazz != Object.class) {
+					Field[] declaredFields = clazz.getDeclaredFields();
+					if (declaredFields == null)
+						continue;
+					for (Field field : declaredFields) {
+						boolean isRendering = isRenderingObj(clazz, field.getName());
+
+						if (!field.isAccessible())
+							field.setAccessible(true);
+						Object adjObj = field.get(obj);
+						if (adjObj == null) 
+							continue;
+						if (field.isSynthetic()) {
+							boolean needDummyObj = (adjObj != null
+									&& needPartialMigration(field.getType()) 
+									&& needPartialMigration(adjObj.getClass())
+									&& !isRenderingObj(clazz, field.getName()));
+							if (needDummyObj) {
+								dummyCandidates.add(obj);
+								syntheticFields.add(adjObj);
+							}
+						}
+						
+						int modifiers = field.getModifiers();
+						if (Modifier.isStatic(modifiers) 
+								|| Modifier.isTransient(modifiers)
+								|| !needPartialMigration(field.getType())
+								|| !needPartialMigration(adjObj.getClass()))
+							continue;
+						if (!visited.contains(adjObj.zObjectId)) {
+							if (adjObj.zObjectId == 0) {
+								adjObj.zObjectId = assignObjId();
+								mIdToObj.put(adjObj.zObjectId, adjObj);
+							}	
+							Class adjClazz = adjObj.getClass();
+							if (isRendering) {
+								if (!Map.class.isAssignableFrom(adjClazz) 
+										&& !visited.contains(adjObj.zObjectId)) {
+									queue.add(adjObj);
+								}
+								mTargetObjIds.add(adjObj.zObjectId);
+							}
+
+							if (adjClazz.isArray()) {
+								Object[] arr = (Object[])adjObj;
+								for (int i = 0; i < arr.length; i++) {
+									if (arr[i] == null) 
+										continue;
+									if (needPartialMigration(arr[i].getClass())) {
+										if (arr[i].zObjectId == 0) {
+											arr[i].zObjectId = assignObjId();
+											mIdToObj.put(arr[i].zObjectId, arr[i]);
+										}	
+										if (isRendering && !visited.contains(arr[i].zObjectId)) {
+											queue.add(arr[i]);
+											mTargetObjIds.add(arr[i].zObjectId);
+										}
+									}
+								}
+							}
+							else if (Map.class.isAssignableFrom(adjClazz)) {
+								Map map = (Map)adjObj;
+								for (Iterator iter = map.entrySet().iterator(); iter.hasNext();) {
+									Entry entry = (Entry)iter.next();
+									Object key = entry.getKey();
+									if (key != null && needPartialMigration(key.getClass())) {
+										if (key.zObjectId == 0) {
+											key.zObjectId = assignObjId();
+											mIdToObj.put(key.zObjectId, key);
+										}	
+										if (isRendering && !visited.contains(key.zObjectId)) {
+											queue.add(key);
+											mTargetObjIds.add(key.zObjectId);
+										}
+									}
+
+									Object value = entry.getValue();
+									if (value != null && needPartialMigration(value.getClass())) {
+										if (value.zObjectId == 0) {
+											value.zObjectId = assignObjId();
+											mIdToObj.put(value.zObjectId, value);
+										}	
+										if (isRendering && !visited.contains(value.zObjectId)) {
+											queue.add(value);
+											mTargetObjIds.add(value.zObjectId);
+										}
+									}
+								}
+							}
+							else if (Collection.class.isAssignableFrom(adjClazz)) {
+								Collection collection = (Collection)adjObj;
+								for (Object elem : collection) {
+									if (elem == null) 
+										continue;
+									if (needPartialMigration(elem.getClass())) {
+										if (elem.zObjectId == 0) {
+											elem.zObjectId = assignObjId();
+											mIdToObj.put(elem.zObjectId, elem);
+										}
+										if (isRendering && !visited.contains(elem.zObjectId)) {
+											queue.add(elem);
+											mTargetObjIds.add(elem.zObjectId);
+										}
+									}
+								}
+							}
+						}
+					}
+					clazz = clazz.getSuperclass();
+				}
+			}
+			for (int i = 0; i < dummyCandidates.size(); i++) {
+				Object obj = dummyCandidates.get(i);
+				Object adjObj = syntheticFields.get(i);
+				if (!mTargetObjIds.contains(adjObj.zObjectId))
+					obj.zFLUIDFlags |= DUMMY_RESV;
+			}
+		} catch (Exception ex) { ex.printStackTrace(); }
+	}
+
+	public void writeFLUIDObject (Output output, Object object) {
+		if (DUI_DEBUG) 
+			Log.d(DUI_TAG, "writeFLUIDObject() start, object = " + object.getClass() + ", objectId = " + object.zObjectId + ", FLUIDFlags = " + object.zFLUIDFlags);
+		
+		findRenderingObjs(object);
+
+		// If the object was already migrated, send only its id.
+		if (object.zObjectId != 0 && ((object.zFLUIDFlags & MIGRATED) != 0)
+				&& !ViewGroup.LayoutParams.class.isAssignableFrom(object.getClass())) {
+			output.writeVarInt(object.zObjectId, true);
+			Log.d(DUI_TAG, "writeFLUIDObject() bp 2, objectId = " + object.zObjectId);
+			return;
+		}
+		else
+			output.writeVarInt(0, true);
+
+		// All rendering objects must not be skipped.
+		if (!isRenderingObj(object.getClass())) {
+			Class clazz = object.getClass();
+			output.writeVarInt(SKIP, true);
+			output.writeVarInt(object.zObjectId, true);
+			writeClass(output, clazz);
+			if ((clazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+				Kryo.installRpcGadget(clazz);
+			object.zFLUIDFlags |= Kryo.DUMMY_IN_REMOTE;
+			Log.d(DUI_TAG, "writeFLUIDObject() bp 3, objectId = " + object.zObjectId);
+			return;
+		}
+		else
+			output.writeVarInt(NO_SKIP, true);
+
+		mPartialMode = true;
+		output.writeString(object.getClass().getName());
+		writeObject(output, object);
+		mPartialMode = false;
+	}
+
+	public Object readFLUIDObject (Input input, Class type, Object uiObj) {
+		if (DUI_DEBUG) {
+			Log.d(DUI_TAG, "readFLUIDObject(Object) start, type = " + type
+					+ ", uiObj = " + uiObj);
+		}
+
+		// Restore the cached object
+		int objectId = input.readVarInt(true);
+		if (objectId != 0) {
+			return mIdToObj.get(objectId);
+		}
+
+		// uiObj is a rendering object
+		input.readVarInt(true);
+
+		String className = input.readString();
+		Class clazz = null;
+		try {
+			clazz = Class.forName(className);
+		} catch (ClassNotFoundException e) {
+			try {
+				clazz = mDexLoader.loadClass(className);
+			} catch (ClassNotFoundException e2) { e2.printStackTrace(); }
+		}
+		uiObj = readObject(input, clazz, uiObj);
+		return uiObj;
+	}
+
+	public Object readFLUIDObject (Input input, Class type) {
+		if (DUI_DEBUG) Log.d(DUI_TAG, "readFLUIDObject() start, type = " + type);
+
+		// Restore the cached object
+		int objectId = input.readVarInt(true);
+		if (objectId != 0) {
+			return mIdToObj.get(objectId);
+		}
+
+		int isSkipped = input.readVarInt(true);
+		if (isSkipped == SKIP) {
+			objectId = input.readVarInt(true);
+			Class clazz = readClass(input).getType();
+			if ((clazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+				Kryo.installRpcGadget(clazz);
+			Object value = newInstance(clazz);
+			value.zFLUIDFlags |= Kryo.DUMMY_OBJECT;
+			value.zObjectId = objectId;
+			mIdToObj.put(objectId, value);
+			Log.d(DUI_TAG, "readFLUIDObject2() value = " + value.getClass() + ", objectId = " + objectId);
+			return value;
+		}
+
+		String className = input.readString();
+		Class clazz = null;
+		try {
+			clazz = Class.forName(className);
+		} catch (ClassNotFoundException e) {
+			try {
+				clazz = mDexLoader.loadClass(className);
+			} catch (ClassNotFoundException e2) { e2.printStackTrace(); }
+		}
+		return readObject(input, clazz);
+	}
+
+	public boolean isRenderingObj(Class clazz) {
+		Set<String> classSet = mRenderingObjs.keySet();
+		while (clazz != Object.class) {
+			if (classSet.contains(clazz.getName()))
+				return true;
+			clazz = clazz.getSuperclass();
+		}
+		return false;
+	}
+
+	public boolean isRenderingObj(Class clazz, String fieldName) {
+		while (clazz != Object.class) {
+			HashSet<String> fieldSet = mRenderingObjs.get(clazz.getName());
+			if (fieldSet != null && fieldSet.contains(fieldName))
+				return true;
+			clazz = clazz.getSuperclass();
+		}
+		return false;
+	}
+
+	public boolean needPartialMigration(Class clazz) {
+		if (clazz.isPrimitive() || isWrapper(clazz) 
+				|| clazz == String.class
+				|| clazz == Class.class
+				|| clazz == WeakReference.class
+				|| clazz.isEnum() || Enum.class.isAssignableFrom(clazz) 
+				|| EnumSet.class.isAssignableFrom(clazz) 
+				|| isTransientClass(clazz.getName())) {
+			return false;
+		}
+		if (clazz.isArray()) {
+			if (clazz.getComponentType().isPrimitive() 
+					|| clazz.getComponentType() == String.class
+					|| isWrapper(clazz.getComponentType()))
+				return false;
+
+			// For 2D array
+			clazz = clazz.getComponentType();
+			if (clazz.isArray() 
+					&& (clazz.getComponentType().isPrimitive() || isWrapper(clazz.getComponentType())))
+				return false;
+		}
+
+		return true;
+	}
+
+	public boolean isWrapper(Class clazz) {
+		if (Boolean.class.equals(clazz)
+				|| Character.class.equals(clazz)
+				|| Byte.class.equals(clazz)
+				|| Short.class.equals(clazz)
+				|| Integer.class.equals(clazz)
+				|| Long.class.equals(clazz)
+				|| Float.class.equals(clazz)
+				|| Double.class.equals(clazz))
+			return true;
+		return false;
+	}
+
+	public int assignObjId() {
+		while (mIdToObj.containsKey(mNextId)) {
+			mNextId++;
+			if (mNextId > Integer.MAX_VALUE)
+				mNextId = 1;
+		}
+		return mNextId;
+	}
+
+	// TODO: Naive implementation
+	public void initTransientClass() {
+		transientClassSet.add("android.app.ActivityThread");
+		transientClassSet.add("android.fluid.FLUIDManager");
+		transientClassSet.add("android.fluid.kryo.Kryo");
+		transientClassSet.add("android.view.View$AttachInfo");
+		transientClassSet.add("android.view.RenderNode");
+		transientClassSet.add("android.content.Context");
+		//transientClassSet.add("android.content.res.Resources");
+		transientClassSet.add("android.content.pm.PackageManager");
+		transientClassSet.add("android.view.accessibility.AccessibilityManager");
+		transientClassSet.add("android.graphics.Typeface");
+		transientClassSet.add("java.lang.reflect.Method");
+
+		// For TextView
+		// Should handle native objects
+		transientClassSet.add("[Landroid.widget.Editor$TextRenderNode;");  
+		// Should handle binder objects
+		transientClassSet.add("android.widget.SpellChecker");
+
+		// For ImageView
+		// Should handle native objects
+		//transientClassSet.add("android.graphics.Path");
+	}
+
+	public static void installRpcGadget(Class clazz) {
+		try {
+			if (clazz == Object.class || clazz == android.os.LocaleList.class) 
+				return;
+			while (clazz != Object.class) {
+				if ((clazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) {
+					Method[] methods = clazz.getDeclaredMethods();
+					for (Method method : methods) {
+						if (Modifier.isStatic(method.getModifiers()) || Modifier.isPrivate(method.getModifiers()))
+							continue;
+						Class.setRpcGadget(clazz, method.getName(), getSignature(method));
+					}
+					clazz.zFLUIDFlags |= Kryo.RPC_INSTALLED;
+				}
+				clazz = clazz.getSuperclass();
+			}
+		} catch (Exception e) { e.printStackTrace(); }
+	}
+
+	private static String getSignature(Method method) throws Exception {
+		StringBuilder result = new StringBuilder();
+		result.append('(');
+		Class<?>[] parameterTypes = method.getParameterTypes();
+		for (Class<?> parameterType : parameterTypes) {
+			result.append(Types.getSignature(parameterType));
+		}
+		result.append(')');
+		result.append(Types.getSignature(method.getReturnType()));
+		return result.toString();
+	}
+
+	public boolean isTransientClass(String className) {
+		return transientClassSet.contains(className);
+	}
+	/* mobiledui: end */
+
 	/** Creates a new Kryo with a {@link DefaultClassResolver} and a {@link MapReferenceResolver}. */
 	public Kryo () {
 		this(new DefaultClassResolver(), new MapReferenceResolver(), new DefaultStreamFactory());
@@ -175,6 +642,11 @@ public class Kryo {
 	/** @param referenceResolver May be null to disable references. */
 	public Kryo (ClassResolver classResolver, ReferenceResolver referenceResolver, StreamFactory streamFactory) {
 		if (classResolver == null) throw new IllegalArgumentException("classResolver cannot be null.");
+
+		/* mobiledui: start */
+		initTransientClass();
+		useAnalysisResult();
+		/* mobiledui: end */
 
 		this.classResolver = classResolver;
 		classResolver.setKryo(this);
@@ -461,10 +933,6 @@ public class Kryo {
 		if (id < 0) throw new IllegalArgumentException("id must be > 0: " + id);
 
 		Registration existing = getRegistration(registration.getId());
-		if (DEBUG && existing != null && existing.getType() != registration.getType()) {
-			debug("An existing registration with a different type already uses ID: " + registration.getId()
-				+ "\nExisting registration: " + existing + "\nis now overwritten with: " + registration);
-		}
 
 		return classResolver.register(registration);
 	}
@@ -501,9 +969,6 @@ public class Kryo {
 			if (registration == null) {
 				if (registrationRequired) {
 					throw new IllegalArgumentException(unregisteredClassMessage(type));
-				}
-				if (warnUnregisteredClasses) {
-					warn(unregisteredClassMessage(type));
 				}
 				registration = classResolver.registerImplicit(type);
 			}
@@ -547,17 +1012,36 @@ public class Kryo {
 	public void writeObject (Output output, Object object) {
 		if (output == null) throw new IllegalArgumentException("output cannot be null.");
 		if (object == null) throw new IllegalArgumentException("object cannot be null.");
+
+		/* mobiledui: start */
+		if (DUI_DEBUG)
+			Log.d(DUI_TAG, "writeObject() start, object = " + object.getClass() + ", objectId = " + object.zObjectId);
+
+		// If the object was already migrated, send only its id.
+		if (object.zObjectId != 0 && ((object.zFLUIDFlags & MIGRATED) != 0)
+				&& !ViewGroup.LayoutParams.class.isAssignableFrom(object.getClass())) {
+			output.writeVarInt(object.zObjectId, true);
+			Log.d(DUI_TAG, "writeObject() end bp 2, objectId = " + object.zObjectId);
+			return;
+		}
+		else
+			output.writeVarInt(0, true);
+		/* mobiledui: end */
+
 		beginObject();
 		try {
 			if (references && writeReferenceOrNull(output, object, false)) {
 				getRegistration(object.getClass()).getSerializer().setGenerics(this, null);
 				return;
 			}
-			if (TRACE || (DEBUG && depth == 1)) log("Write", object);
 			getRegistration(object.getClass()).getSerializer().write(this, output, object);
 		} finally {
 			if (--depth == 0 && autoReset) reset();
 		}
+		/* mobiledui: start */
+		if (DUI_DEBUG) 
+			Log.d(DUI_TAG, "writeObject() end, objectId = " + object.zObjectId);
+		/* mobiledui: end */
 	}
 
 	/** Writes an object using the specified serializer. The registered serializer is ignored. */
@@ -565,17 +1049,34 @@ public class Kryo {
 		if (output == null) throw new IllegalArgumentException("output cannot be null.");
 		if (object == null) throw new IllegalArgumentException("object cannot be null.");
 		if (serializer == null) throw new IllegalArgumentException("serializer cannot be null.");
+		/* mobiledui: start */
+		if (DUI_DEBUG) 
+			Log.d(DUI_TAG, "writeObject(Serializer) start, object = " + object.getClass() + ", objectId = " + object.zObjectId + ", serializer = " + serializer);
+
+		// If the object was already migrated, send only its id.
+		if (object.zObjectId != 0 && ((object.zFLUIDFlags & MIGRATED) != 0)
+				&& !ViewGroup.LayoutParams.class.isAssignableFrom(object.getClass())) {
+			output.writeVarInt(object.zObjectId, true);
+			return;
+		}
+		else
+			output.writeVarInt(0, true);
+		/* mobiledui: end */
+
 		beginObject();
 		try {
 			if (references && writeReferenceOrNull(output, object, false)) {
 				serializer.setGenerics(this, null);
 				return;
 			}
-			if (TRACE || (DEBUG && depth == 1)) log("Write", object);
 			serializer.write(this, output, object);
 		} finally {
 			if (--depth == 0 && autoReset) reset();
 		}
+		/* mobiledui: start */
+		if (DUI_DEBUG) 
+			Log.d(DUI_TAG, "writeObject(Serializer) end, objectId = " + object.zObjectId);
+		/* mobiledui: end */
 	}
 
 	/** Writes an object or null using the registered serializer for the specified type.
@@ -592,13 +1093,11 @@ public class Kryo {
 				}
 			} else if (!serializer.getAcceptsNull()) {
 				if (object == null) {
-					if (TRACE || (DEBUG && depth == 1)) log("Write", object);
 					output.writeByte(NULL);
 					return;
 				}
 				output.writeByte(NOT_NULL);
 			}
-			if (TRACE || (DEBUG && depth == 1)) log("Write", object);
 			serializer.write(this, output, object);
 		} finally {
 			if (--depth == 0 && autoReset) reset();
@@ -610,6 +1109,25 @@ public class Kryo {
 	public void writeObjectOrNull (Output output, Object object, Serializer serializer) {
 		if (output == null) throw new IllegalArgumentException("output cannot be null.");
 		if (serializer == null) throw new IllegalArgumentException("serializer cannot be null.");
+
+		/* mobiledui: start */
+		if (DUI_DEBUG)
+			Log.d(DUI_TAG, "writeObjectOrNull(Serializer) start, object = " + object + ", objectId = " + ((object != null)? object.zObjectId : "null") + ", serializer = " + serializer);
+
+		if (object != null && object.zObjectId != 0) {
+			output.writeVarInt(NOT_NULL, true);
+			// If the object was already migrated, send only its id.
+			if (object != null && object.zObjectId != 0 && (object.zFLUIDFlags & MIGRATED) != 0) {
+				output.writeVarInt(object.zObjectId, true);
+				return;
+			}
+			else
+				output.writeVarInt(0, true);
+		}
+		else
+			output.writeVarInt(NULL, true);
+		/* mobiledui: end */
+
 		beginObject();
 		try {
 			if (references) {
@@ -619,23 +1137,34 @@ public class Kryo {
 				}
 			} else if (!serializer.getAcceptsNull()) {
 				if (object == null) {
-					if (TRACE || (DEBUG && depth == 1)) log("Write", null);
 					output.writeByte(NULL);
 					return;
 				}
 				output.writeByte(NOT_NULL);
 			}
-			if (TRACE || (DEBUG && depth == 1)) log("Write", object);
 			serializer.write(this, output, object);
 		} finally {
 			if (--depth == 0 && autoReset) reset();
 		}
+		/* mobiledui: start */
+		if (DUI_DEBUG) 
+			Log.d(DUI_TAG, "writeObjectOrNull(Serializer) end, objectId = " + object.zObjectId);
+		/* mobiledui: end */
 	}
 
 	/** Writes the class and object or null using the registered serializer.
 	 * @param object May be null. */
 	public void writeClassAndObject (Output output, Object object) {
 		if (output == null) throw new IllegalArgumentException("output cannot be null.");
+		
+		/* mobiledui: start */
+		if (DUI_DEBUG) {
+			Log.d(DUI_TAG, "writeClassAndObject() start, object = " + object
+					+ ", class = " + ((object != null)? object.getClass() : "null")
+					+ ", objectId = " + ((object != null)? object.zObjectId : "null"));
+		}
+		/* mobiledui: end */
+
 		beginObject();
 		try {
 			if (object == null) {
@@ -643,22 +1172,38 @@ public class Kryo {
 				return;
 			}
 			Registration registration = writeClass(output, object.getClass());
-			if (references && writeReferenceOrNull(output, object, false)) {
-				registration.getSerializer().setGenerics(this, null);
+
+			/* mobiledui: start */
+			// If the object was already migrated, send only its id.
+			if (object.zObjectId != 0 && (object.zFLUIDFlags & MIGRATED) != 0) {
+				output.writeVarInt(object.zObjectId, true);
 				return;
 			}
-			if (TRACE || (DEBUG && depth == 1)) log("Write", object);
+			else
+				output.writeVarInt(0, true);
+			/* mobiledui: end */
+
+			if (references && writeReferenceOrNull(output, object, false)) {
+				registration.getSerializer().setGenerics(this, null);
+				/* mobiledui: start */
+				if (DUI_DEBUG) Log.d(DUI_TAG, "writeClassAndObject() end 2, objectId = " + object.zObjectId);
+				/* mobiledui: end */
+				return;
+			}
+
 			registration.getSerializer().write(this, output, object);
 		} finally {
 			if (--depth == 0 && autoReset) reset();
 		}
+		/* mobiledui: start */
+		if (DUI_DEBUG) Log.d(DUI_TAG, "writeClassAndObject() end, objectId = " + object.zObjectId);
+		/* mobiledui: end */
 	}
 
 	/** @param object May be null if mayBeNull is true.
 	 * @return true if no bytes need to be written for the object. */
 	boolean writeReferenceOrNull (Output output, Object object, boolean mayBeNull) {
 		if (object == null) {
-			if (TRACE || (DEBUG && depth == 1)) log("Write", null);
 			output.writeVarInt(Kryo.NULL, true);
 			return true;
 		}
@@ -672,7 +1217,6 @@ public class Kryo {
 
 		// If not the first time encountered, only write reference ID.
 		if (id != -1) {
-			if (DEBUG) debug("kryo", "Write object reference " + id + ": " + string(object));
 			output.writeVarInt(id + 2, true); // + 2 because 0 and 1 are used for NULL and NOT_NULL.
 			return true;
 		}
@@ -680,7 +1224,6 @@ public class Kryo {
 		// Otherwise write NOT_NULL and then the object bytes.
 		id = referenceResolver.addWrittenObject(object);
 		output.writeVarInt(NOT_NULL, true);
-		if (TRACE) trace("kryo", "Write initial object reference " + id + ": " + string(object));
 		return false;
 	}
 
@@ -696,21 +1239,70 @@ public class Kryo {
 		}
 	}
 
+	/* mobiledui: start */
+	public Object readObject (Input input, Class type, Object object) {
+		if (input == null) throw new IllegalArgumentException("input cannot be null.");
+		if (type == null) throw new IllegalArgumentException("type cannot be null.");
+
+		// If the object was already migrated, find it.
+		int objectId = input.readVarInt(true);
+		if (DUI_DEBUG) 
+			Log.d(DUI_TAG, "readObject(Object) start, type = " + type + ", objectId = " + objectId);
+		if (objectId != 0) {
+			return mIdToObj.get(objectId);
+		}
+
+		beginObject();
+		try {
+			if (references) {
+				int stackSize = readReferenceOrNull(input, type, false);
+				if (stackSize == REF) {
+					object = readObject;
+					return readObject;
+				}
+			}
+			getRegistration(type).getSerializer().read(this, input, type, object);
+			if (DUI_DEBUG)
+				Log.d(DUI_TAG, "readObject(Object) end, objectId = " + object.zObjectId);
+		} finally {
+			if (--depth == 0 && autoReset) reset();
+		}
+		return object;
+	}
+	/* mobiledui: end */
+
 	/** Reads an object using the registered serializer. */
 	public <T> T readObject (Input input, Class<T> type) {
 		if (input == null) throw new IllegalArgumentException("input cannot be null.");
 		if (type == null) throw new IllegalArgumentException("type cannot be null.");
+
+		/* mobiledui: start */
+		int objectId = input.readVarInt(true);
+		if (DUI_DEBUG) 
+			Log.d(DUI_TAG, "readObject() start, type = " + type + ", objectId = " + objectId);
+		if (objectId != 0) {
+			return (T) mIdToObj.get(objectId);
+		}
+		/* mobiledui: end */
+
 		beginObject();
 		try {
 			T object;
 			if (references) {
 				int stackSize = readReferenceOrNull(input, type, false);
 				if (stackSize == REF) return (T)readObject;
+
 				object = (T)getRegistration(type).getSerializer().read(this, input, type);
 				if (stackSize == readReferenceIds.size) reference(object);
-			} else
+			} else {
 				object = (T)getRegistration(type).getSerializer().read(this, input, type);
-			if (TRACE || (DEBUG && depth == 1)) log("Read", object);
+			}
+
+			/* mobiledui: start */
+			if (DUI_DEBUG)
+				Log.d(DUI_TAG, "readObject() end, objectId = " + object.zObjectId);
+			/* mobiledui: end */
+
 			return object;
 		} finally {
 			if (--depth == 0 && autoReset) reset();
@@ -722,17 +1314,37 @@ public class Kryo {
 		if (input == null) throw new IllegalArgumentException("input cannot be null.");
 		if (type == null) throw new IllegalArgumentException("type cannot be null.");
 		if (serializer == null) throw new IllegalArgumentException("serializer cannot be null.");
+
+		/* mobiledui: start */
+		int objectId = input.readVarInt(true);
+		if (DUI_DEBUG) { 
+			Log.d(DUI_TAG, "readObject(Serializer) start, type = " + type 
+					+ ", serializer = " + serializer + ", objectId = " + objectId);
+		}
+		if (objectId != 0) {
+			return (T) mIdToObj.get(objectId);
+		}
+		/* mobiledui: end */
+
 		beginObject();
 		try {
 			T object;
 			if (references) {
 				int stackSize = readReferenceOrNull(input, type, false);
 				if (stackSize == REF) return (T)readObject;
+
 				object = (T)serializer.read(this, input, type);
+
 				if (stackSize == readReferenceIds.size) reference(object);
-			} else
+			} else {
 				object = (T)serializer.read(this, input, type);
-			if (TRACE || (DEBUG && depth == 1)) log("Read", object);
+			}
+
+			/* mobiledui: start */
+			if (DUI_DEBUG) 
+				Log.d(DUI_TAG, "readObject(Serializer) end, objectId = " + object.zObjectId);
+			/* mobiledui: end */
+			
 			return object;
 		} finally {
 			if (--depth == 0 && autoReset) reset();
@@ -755,12 +1367,10 @@ public class Kryo {
 			} else {
 				Serializer serializer = getRegistration(type).getSerializer();
 				if (!serializer.getAcceptsNull() && input.readByte() == NULL) {
-					if (TRACE || (DEBUG && depth == 1)) log("Read", null);
 					return null;
 				}
 				object = (T)serializer.read(this, input, type);
 			}
-			if (TRACE || (DEBUG && depth == 1)) log("Read", object);
 			return object;
 		} finally {
 			if (--depth == 0 && autoReset) reset();
@@ -773,6 +1383,20 @@ public class Kryo {
 		if (input == null) throw new IllegalArgumentException("input cannot be null.");
 		if (type == null) throw new IllegalArgumentException("type cannot be null.");
 		if (serializer == null) throw new IllegalArgumentException("serializer cannot be null.");
+
+		/* mobiledui: start */
+		if (DUI_DEBUG) 
+			Log.d(DUI_TAG, "readObjectOrNull(Serializer) start, type = " + type + ", serializer = " + serializer);
+		int isNotNull = input.readVarInt(true);
+		int objectId = 0;
+		if (isNotNull == 1) {
+			objectId = input.readVarInt(true);
+			if (objectId != 0) {
+				return (T) mIdToObj.get(objectId);
+			}
+		}
+		/* mobiledui: end */
+
 		beginObject();
 		try {
 			T object;
@@ -780,15 +1404,18 @@ public class Kryo {
 				int stackSize = readReferenceOrNull(input, type, true);
 				if (stackSize == REF) return (T)readObject;
 				object = (T)serializer.read(this, input, type);
+
 				if (stackSize == readReferenceIds.size) reference(object);
 			} else {
 				if (!serializer.getAcceptsNull() && input.readByte() == NULL) {
-					if (TRACE || (DEBUG && depth == 1)) log("Read", null);
 					return null;
 				}
 				object = (T)serializer.read(this, input, type);
 			}
-			if (TRACE || (DEBUG && depth == 1)) log("Read", object);
+			/* mobiledui: start */
+			if (DUI_DEBUG) 
+				Log.d(DUI_TAG, "readObjectOrNull(Serializer) end, objectId = " + object.zObjectId);
+			/* mobiledui: end */
 			return object;
 		} finally {
 			if (--depth == 0 && autoReset) reset();
@@ -799,22 +1426,37 @@ public class Kryo {
 	 * @return May be null. */
 	public Object readClassAndObject (Input input) {
 		if (input == null) throw new IllegalArgumentException("input cannot be null.");
+
+		/* mobiledui: start */
+		if (DUI_DEBUG) Log.d(DUI_TAG, "readClassAndObject() start");
+		/* mobiledui: end */
+
 		beginObject();
 		try {
 			Registration registration = readClass(input);
 			if (registration == null) return null;
 			Class type = registration.getType();
 
+			/* mobiledui: start */
+			int objectId = input.readVarInt(true);
+			if (objectId != 0) {
+				return mIdToObj.get(objectId);
+			}
+			/* mobiledui: end */
+
 			Object object;
 			if (references) {
 				registration.getSerializer().setGenerics(this, null);
 				int stackSize = readReferenceOrNull(input, type, false);
 				if (stackSize == REF) return readObject;
+
 				object = registration.getSerializer().read(this, input, type);
 				if (stackSize == readReferenceIds.size) reference(object);
 			} else
 				object = registration.getSerializer().read(this, input, type);
-			if (TRACE || (DEBUG && depth == 1)) log("Read", object);
+			/* mobiledui: start */
+			if (DUI_DEBUG) Log.d(DUI_TAG, "readClassAndObject() end, objectId = " + ((object != null)? object.zObjectId : -1));
+			/* mobiledui: end */
 			return object;
 		} finally {
 			if (--depth == 0 && autoReset) reset();
@@ -830,7 +1472,6 @@ public class Kryo {
 		if (mayBeNull) {
 			id = input.readVarInt(true);
 			if (id == Kryo.NULL) {
-				if (TRACE || (DEBUG && depth == 1)) log("Read", null);
 				readObject = null;
 				return REF;
 			}
@@ -848,14 +1489,12 @@ public class Kryo {
 		if (id == NOT_NULL) {
 			// First time object has been encountered.
 			id = referenceResolver.nextReadId(type);
-			if (TRACE) trace("kryo", "Read initial object reference " + id + ": " + className(type));
 			readReferenceIds.add(id);
 			return readReferenceIds.size;
 		}
 		// The id is an object reference.
 		id -= 2; // - 2 because 0 and 1 are used for NULL and NOT_NULL.
 		readObject = referenceResolver.getReadObject(type, id);
-		if (DEBUG) debug("kryo", "Read object reference " + id + ": " + string(readObject));
 		return REF;
 	}
 
@@ -891,8 +1530,6 @@ public class Kryo {
 
 		copyDepth = 0;
 		if (originalToCopy != null) originalToCopy.clear(2048);
-
-		if (TRACE) trace("kryo", "Object graph complete.");
 	}
 
 	/** Returns a deep copy of the object. Serializers for the classes involved must support {@link Serializer#copy(Kryo, Object)}.
@@ -913,7 +1550,6 @@ public class Kryo {
 			else
 				copy = getSerializer(object.getClass()).copy(this, object);
 			if (needsCopyReference != null) reference(copy);
-			if (TRACE || (DEBUG && copyDepth == 1)) log("Copy", copy);
 			return (T)copy;
 		} finally {
 			if (--copyDepth == 0) reset();
@@ -939,7 +1575,6 @@ public class Kryo {
 			else
 				copy = serializer.copy(this, object);
 			if (needsCopyReference != null) reference(copy);
-			if (TRACE || (DEBUG && copyDepth == 1)) log("Copy", copy);
 			return (T)copy;
 		} finally {
 			if (--copyDepth == 0) reset();
@@ -965,7 +1600,6 @@ public class Kryo {
 			else
 				copy = getSerializer(object.getClass()).copy(this, object);
 			if (needsCopyReference != null) reference(copy);
-			if (TRACE || (DEBUG && copyDepth == 1)) log("Shallow copy", copy);
 			return (T)copy;
 		} finally {
 			copyShallow = false;
@@ -992,7 +1626,6 @@ public class Kryo {
 			else
 				copy = serializer.copy(this, object);
 			if (needsCopyReference != null) reference(copy);
-			if (TRACE || (DEBUG && copyDepth == 1)) log("Shallow copy", copy);
 			return (T)copy;
 		} finally {
 			copyShallow = false;
@@ -1003,12 +1636,6 @@ public class Kryo {
 	// --- Utility ---
 
 	private void beginObject () {
-		if (DEBUG) {
-			if (depth == 0)
-				thread = Thread.currentThread();
-			else if (thread != Thread.currentThread())
-				throw new ConcurrentModificationException("Kryo must not be accessed concurrently by multiple threads.");
-		}
 		if (depth == maxDepth) throw new KryoException("Max depth exceeded: " + depth);
 		depth++;
 	}
@@ -1043,7 +1670,6 @@ public class Kryo {
 	 * of needing to know the classes to be serialized up front. */
 	public void setRegistrationRequired (boolean registrationRequired) {
 		this.registrationRequired = registrationRequired;
-		if (TRACE) trace("kryo", "Registration required: " + registrationRequired);
 	}
 
 	public boolean isRegistrationRequired () {
@@ -1057,7 +1683,6 @@ public class Kryo {
 	*/
 	public void setWarnUnregisteredClasses (boolean warnUnregisteredClasses) {
 		this.warnUnregisteredClasses = warnUnregisteredClasses;
-		if (TRACE) trace("kryo", "Warn unregistered classes: " + warnUnregisteredClasses);
 	}
 
 	public boolean isWarnUnregisteredClasses () {
@@ -1072,7 +1697,6 @@ public class Kryo {
 		if (references == this.references) return references;
 		this.references = references;
 		if (references && referenceResolver == null) referenceResolver = new MapReferenceResolver();
-		if (TRACE) trace("kryo", "References: " + references);
 		return !references;
 	}
 
@@ -1100,7 +1724,6 @@ public class Kryo {
 		if (referenceResolver == null) throw new IllegalArgumentException("referenceResolver cannot be null.");
 		this.references = true;
 		this.referenceResolver = referenceResolver;
-		if (TRACE) trace("kryo", "Reference resolver: " + referenceResolver.getClass().getName());
 	}
 
 	public boolean getReferences () {
@@ -1242,7 +1865,7 @@ public class Kryo {
 		return fieldSerializerConfig.isUseAsm();
 	}
 
-	static public class DefaultInstantiatorStrategy implements org.objenesis.strategy.InstantiatorStrategy {
+	static public class DefaultInstantiatorStrategy implements android.fluid.objenesis.strategy.InstantiatorStrategy {
 		private InstantiatorStrategy fallbackStrategy;
 
 		public DefaultInstantiatorStrategy () {
@@ -1295,6 +1918,9 @@ public class Kryo {
 				return new ObjectInstantiator() {
 					public Object newInstance () {
 						try {
+							/* mobiledui: start */
+						    constructor.setAccessible(true);
+							/* mobiledui: end */
 							return constructor.newInstance();
 						} catch (Exception ex) {
 							throw new KryoException("Error constructing instance of class: " + className(type), ex);

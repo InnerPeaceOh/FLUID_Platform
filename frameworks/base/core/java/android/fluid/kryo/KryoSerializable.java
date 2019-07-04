@@ -17,11 +17,11 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo;
+package android.fluid.kryo;
 
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers.KryoSerializableSerializer;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
+import android.fluid.kryo.serializers.DefaultSerializers.KryoSerializableSerializer;
 
 /** Allows implementing classes to perform their own serialization. Hand written serialization can be more efficient in some
  * cases.
@@ -29,6 +29,7 @@ import com.esotericsoftware.kryo.serializers.DefaultSerializers.KryoSerializable
  * The default serializer for KryoSerializable is {@link KryoSerializableSerializer}, which uses {@link Kryo#newInstance(Class)}
  * to construct the class.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public interface KryoSerializable {
 	public void write (Kryo kryo, Output output);
 

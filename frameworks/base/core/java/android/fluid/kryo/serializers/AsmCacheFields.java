@@ -17,17 +17,18 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
+package android.fluid.kryo.serializers;
 
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.serializers.FieldSerializer.CachedField;
+import android.fluid.kryo.KryoException;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
+import android.fluid.kryo.serializers.FieldSerializer.CachedField;
 import com.esotericsoftware.reflectasm.FieldAccess;
 
 /*** Implementations of ASM-based serializers for fields.
  * 
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 class AsmCacheFields {
 
 	abstract static class AsmCachedField extends CachedField {

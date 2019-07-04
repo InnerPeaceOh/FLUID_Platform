@@ -17,18 +17,17 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.io;
-
-import static com.esotericsoftware.minlog.Log.*;
+package android.fluid.kryo.io;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
-import com.esotericsoftware.kryo.KryoException;
+import android.fluid.kryo.KryoException;
 
 /** An OutputStream that buffers data in a byte array and flushes to another OutputStream, writing the length before each flush.
  * The length allows the chunks to be skipped when reading.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public class OutputChunked extends Output {
 	/** Creates an uninitialized OutputChunked with a maximum chunk size of 2048. The OutputStream must be set before it can be
 	 * used. */
@@ -66,7 +65,6 @@ public class OutputChunked extends Output {
 
 	private void writeChunkSize () throws IOException {
 		int size = position();
-		if (TRACE) trace("kryo", "Write chunk: " + size);
 		OutputStream outputStream = getOutputStream();
 		if ((size & ~0x7F) == 0) {
 			outputStream.write(size);
@@ -99,7 +97,6 @@ public class OutputChunked extends Output {
 	 * reading. */
 	public void endChunks () {
 		flush(); // Flush any partial chunk.
-		if (TRACE) trace("kryo", "End chunks.");
 		try {
 			getOutputStream().write(0); // Zero length chunk.
 		} catch (IOException ex) {

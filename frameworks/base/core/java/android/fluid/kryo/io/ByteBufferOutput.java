@@ -17,7 +17,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.io;
+package android.fluid.kryo.io;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -30,13 +30,13 @@ import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 import java.nio.ShortBuffer;
 
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryo.util.UnsafeUtil;
+import android.fluid.kryo.KryoException;
 
 /** An OutputStream that buffers data in a byte array and optionally flushes to another OutputStream. Utility methods are provided
  * for efficiently writing primitive types and strings.
  * 
  * @author Roman Levenstein <romixlev@gmail.com> */
+/** @hide */
 public class ByteBufferOutput extends Output {
 	protected ByteBuffer niobuffer;
 
@@ -94,38 +94,12 @@ public class ByteBufferOutput extends Output {
 		setBuffer(buffer, maxBufferSize);
 	}
 
-	/** Creates a direct ByteBuffer of a given size at a given address.
-	 * <p>
-	 * Typical usage could look like this snippet:
-	 * 
-	 * <pre>
-	 * // Explicitly allocate memory
-	 * long bufAddress = UnsafeUtil.unsafe().allocateMemory(4096);
-	 * // Create a ByteBufferOutput using the allocated memory region
-	 * ByteBufferOutput buffer = new ByteBufferOutput(bufAddress, 4096);
-	 * 
-	 * // Do some operations on this buffer here
-	 * 
-	 * // Say that ByteBuffer won't be used anymore
-	 * buffer.release();
-	 * // Release the allocated region
-	 * UnsafeUtil.unsafe().freeMemory(bufAddress);
-	 * </pre>
-	 * 
-	 * @param address starting address of a memory region pre-allocated using Unsafe.allocateMemory()
-	 * @param maxBufferSize */
-	public ByteBufferOutput (long address, int maxBufferSize) {
-		niobuffer = UnsafeUtil.getDirectBufferAt(address, maxBufferSize);
-		setBuffer(niobuffer, maxBufferSize);
-	}
-
 	/** Release a direct buffer. {@link #setBuffer(ByteBuffer, int)} should be called before next write operations can be called.
 	 * 
 	 * NOTE: If Cleaner is not accessible due to SecurityManager restrictions, reflection could be used to obtain the "clean"
 	 * method and then invoke it. */
 	public void release () {
 		clear();
-		UnsafeUtil.releaseBuffer(niobuffer);
 		niobuffer = null;
 	}
 

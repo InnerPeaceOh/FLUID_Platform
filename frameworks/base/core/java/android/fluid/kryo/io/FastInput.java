@@ -17,14 +17,15 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.io;
+package android.fluid.kryo.io;
 
 import java.io.InputStream;
 
-import com.esotericsoftware.kryo.KryoException;
+import android.fluid.kryo.KryoException;
 
 /** Same as Input, but does not use variable length encoding for integer types.
  * @author Roman Levenstein <romxilev@gmail.com> */
+/** @hide */
 public final class FastInput extends Input {
 
 	/** Creates an uninitialized Output. {@link #setBuffer(byte[], int, int)} must be called before the Output is used. */

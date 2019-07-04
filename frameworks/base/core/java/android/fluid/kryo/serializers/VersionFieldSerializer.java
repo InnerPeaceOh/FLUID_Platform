@@ -17,9 +17,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
-
-import static com.esotericsoftware.minlog.Log.*;
+package android.fluid.kryo.serializers;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -27,10 +25,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Field;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.KryoException;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
 
 /** Serializes objects using direct field assignment, with versioning backward compatibility. Allows fields to have a
  * <code>@Since(int)</code> annotation to indicate the version they were added. For a particular field, the value in
@@ -40,6 +38,7 @@ import com.esotericsoftware.kryo.io.Output;
  * overhead (a single additional varint) compared to FieldSerializer. Forward compatibility is not supported.
  * @see TaggedFieldSerializer
  * @author Tianyi HE <hty0807@gmail.com> */
+/** @hide */
 public class VersionFieldSerializer<T> extends FieldSerializer<T> {
 	private int typeVersion = 0; // Version of current type.
 	private int[] fieldVersion; // Version of each field.
@@ -72,7 +71,6 @@ public class VersionFieldSerializer<T> extends FieldSerializer<T> {
 			}
 		}
 		this.removedFields.clear();
-		if (DEBUG) debug("Version for type " + getType().getName() + " is " + typeVersion);
 	}
 
 	@Override
@@ -113,7 +111,6 @@ public class VersionFieldSerializer<T> extends FieldSerializer<T> {
 		for (int i = 0, n = fields.length; i < n; i++) {
 			// Field is not present in input, skip it.
 			if (fieldVersion[i] > version) {
-				if (DEBUG) debug("Skip field " + fields[i].getField().getName());
 				continue;
 			}
 			fields[i].read(input, object);

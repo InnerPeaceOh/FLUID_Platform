@@ -17,9 +17,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
-
-import static com.esotericsoftware.minlog.Log.*;
+package android.fluid.kryo.serializers;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -38,15 +36,26 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.NotNull;
-import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.util.IntArray;
-import com.esotericsoftware.kryo.util.ObjectMap;
-import com.esotericsoftware.kryo.util.Util;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.NotNull;
+import android.fluid.kryo.Serializer;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
+import android.fluid.kryo.util.IntArray;
+import android.fluid.kryo.util.ObjectMap;
+import android.fluid.kryo.util.Util;
 import com.esotericsoftware.reflectasm.FieldAccess;
+
+/* mobiledui: start */
+import android.util.Log;
+import android.content.Context;
+import android.content.res.Resources;
+import android.view.WindowManager;
+import android.text.Selection;
+import android.os.Handler;
+import com.android.internal.policy.DecorView;
+import com.android.internal.policy.PhoneWindow;
+/* mobiledui: end */
 
 // BOZO - Make primitive serialization with ReflectASM configurable?
 
@@ -63,7 +72,24 @@ import com.esotericsoftware.reflectasm.FieldAccess;
  * @see CompatibleFieldSerializer
  * @author Nathan Sweet <misc@n4te.com>
  * @author Roman Levenstein <romixlev@gmail.com> */
+/** @hide */
 public class FieldSerializer<T> extends Serializer<T> implements Comparator<FieldSerializer.CachedField> {
+
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(FieldSerializer)";
+    private static final boolean DUI_DEBUG = false;
+    private static final String DUI_TEMP_TAG = "TEMP(FieldSerializer)";
+    private static final boolean TEMP_DEBUG = false;
+
+	static public final int IS_CONTEXT = 1;
+	static public final int IS_DECOR_VIEW = 2;
+	static public final int IS_WINDOW_MANAGER = 3;
+	static public final int IS_PHONE_WINDOW = 4;
+	static public final int IS_SELECTION_START = 5;
+	static public final int IS_SELECTION_END = 6;
+	static public final int IS_RESOURCES = 7;
+	static public final int IS_HANDLER = 8;
+	/* mobiledui: end */
 
 	final Kryo kryo;
 	final Class type;
@@ -75,7 +101,7 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 	private CachedField[] transientFields = new CachedField[0];
 	protected HashSet<CachedField> removedFields = new HashSet();
 	Object access;
-	private FieldSerializerUnsafeUtil unsafeUtil;
+	//private FieldSerializerUnsafeUtil unsafeUtil;
 
 	private FieldSerializerGenericsUtil genericsUtil;
 
@@ -106,24 +132,10 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 	static CachedFieldFactory unsafeFieldFactory;
 
 	static boolean unsafeAvailable;
-	static Class<?> unsafeUtilClass;
 	static Method sortFieldsByOffsetMethod;
-
-	static {
-		try {
-			unsafeUtilClass = FieldSerializer.class.getClassLoader().loadClass("com.esotericsoftware.kryo.util.UnsafeUtil");
-			Method unsafeMethod = unsafeUtilClass.getMethod("unsafe");
-			sortFieldsByOffsetMethod = unsafeUtilClass.getMethod("sortFieldsByOffset", List.class);
-			Object unsafe = unsafeMethod.invoke(null);
-			if (unsafe != null) unsafeAvailable = true;
-		} catch (Throwable e) {
-			if (TRACE) trace("kryo", "sun.misc.Unsafe is unavailable.");
-		}
-	}
 
 	{
 		varIntsEnabled = true;
-		if (TRACE) trace("kryo", "Optimize ints: " + varIntsEnabled);
 	}
 
 	public FieldSerializer (Kryo kryo, Class type) {
@@ -145,7 +157,7 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 		else
 			this.componentType = null;
 		this.genericsUtil = new FieldSerializerGenericsUtil(this);
-		this.unsafeUtil = FieldSerializerUnsafeUtil.Factory.getInstance(this);
+		//this.unsafeUtil = FieldSerializerUnsafeUtil.Factory.getInstance(this);
 		this.annotationsUtil = new FieldSerializerAnnotationsUtil(this);
 		rebuildCachedFields();
 	}
@@ -160,9 +172,11 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 	/** Rebuilds the list of cached fields.
 	 * @param minorRebuild if set, processing due to changes in generic type parameters will be optimized */
 	protected void rebuildCachedFields (boolean minorRebuild) {
+		/* mobiledui: start */
+		if (TEMP_DEBUG) Log.d(DUI_TEMP_TAG, "rebuildCachedFields() start, type = " + type);
+		/* mobiledui: end */
 		/** TODO: Optimize rebuildCachedFields invocations performed due to changes in generic type parameters */
 
-		if (TRACE && generics != null) trace("kryo", "Generic type parameters: " + Arrays.toString(generics));
 		if (type.isInterface()) {
 			fields = new CachedField[0]; // No fields to serialize.
 			return;
@@ -255,6 +269,9 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 		}
 
 		annotationsUtil.processAnnotatedFields(this);
+		/* mobiledui: start */
+		if (TEMP_DEBUG) Log.d(DUI_TEMP_TAG, "rebuildCachedFields() end, type = " + type);
+		/* mobiledui: end */
 	}
 
 	private List<Field> buildValidFieldsFromCachedFields (CachedField[] cachedFields, IntArray useAsm) {
@@ -267,13 +284,27 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 	}
 
 	private List<Field> buildValidFields (boolean transientFields, List<Field> allFields, ObjectMap context, IntArray useAsm) {
+		/* mobiledui: start */
+		if (TEMP_DEBUG && !transientFields) 
+			Log.d(DUI_TEMP_TAG, "buildValidFields() start, type = " + type + ", config = " + config.isSetFieldsAsAccessible());
+		/* mobiledui: end */
 		List<Field> result = new ArrayList(allFields.size());
 
 		for (int i = 0, n = allFields.size(); i < n; i++) {
 			Field field = allFields.get(i);
+			/* mobiledui: start */
+			if (TEMP_DEBUG && !transientFields) 
+				Log.d(DUI_TEMP_TAG, "buildValidFields(), field = " + field.getName() + " (" + field.getType() + ")");
+			/* mobiledui: end */
 
 			int modifiers = field.getModifiers();
 			if (Modifier.isTransient(modifiers) != transientFields) continue;
+			/* mobiledui: start */
+			if (kryo.isTransientClass(field.getType().getName()) != transientFields) {
+			    if (TEMP_DEBUG) Log.d(DUI_TEMP_TAG, "buildValidFields() skip");
+				continue;
+			}
+			/* mobiledui: end */
 			if (Modifier.isStatic(modifiers)) continue;
 			if (field.isSynthetic() && config.isIgnoreSyntheticFields()) continue;
 
@@ -292,10 +323,12 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 			result.add(field);
 
 			// BOZO - Must be public?
-			useAsm
-				.add(!Modifier.isFinal(modifiers) && Modifier.isPublic(modifiers) && Modifier.isPublic(field.getType().getModifiers())
-					? 1 : 0);
+			useAsm.add(!Modifier.isFinal(modifiers) && Modifier.isPublic(modifiers) 
+					&& Modifier.isPublic(field.getType().getModifiers())? 1 : 0);
 		}
+		/* mobiledui: start */
+		if (TEMP_DEBUG && !transientFields) Log.d(DUI_TEMP_TAG, "buildValidFields() end");
+		/* mobiledui: end */
 		return result;
 	}
 
@@ -308,9 +341,10 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 				if (access != null && useAsm.get(baseIndex + i) == 1) accessIndex = ((FieldAccess)access).getIndex(field.getName());
 				cachedFields.add(newCachedField(field, cachedFields.size(), accessIndex));
 			}
-		} else {
-			unsafeUtil.createUnsafeCacheFieldsAndRegions(validFields, cachedFields, baseIndex, useAsm);
-		}
+		} 
+//		else {
+//			unsafeUtil.createUnsafeCacheFieldsAndRegions(validFields, cachedFields, baseIndex, useAsm);
+//		}
 	}
 
 	public void setGenerics (Kryo kryo, Class[] generics) {
@@ -341,7 +375,6 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 
 		if (!config.isOptimizedGenerics() || fieldGenericType == fieldClass[0]) {
 			// For optimized generics this is a field without generic type parameters
-			if (TRACE) trace("kryo", "Field " + field.getName() + ": " + fieldClass[0]);
 			cachedField = newMatchingCachedField(field, accessIndex, fieldClass[0], fieldGenericType, null);
 		} else {
 			cachedField = genericsUtil.newCachedFieldOfGenericType(field, accessIndex, fieldClass, fieldGenericType);
@@ -353,10 +386,6 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 
 		cachedField.field = field;
 		cachedField.varIntsEnabled = varIntsEnabled;
-
-		if (!config.isUseAsm()) {
-			cachedField.offset = unsafeUtil.getObjectFieldOffset(field);
-		}
 
 		cachedField.access = (FieldAccess)access;
 		cachedField.accessIndex = accessIndex;
@@ -374,8 +403,8 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 		CachedField cachedField;
 		if (accessIndex != -1) {
 			cachedField = getAsmFieldFactory().createCachedField(fieldClass, field, this);
-		} else if (!config.isUseAsm()) {
-			cachedField = getUnsafeFieldFactory().createCachedField(fieldClass, field, this);
+//		} else if (!config.isUseAsm()) {
+//			cachedField = getUnsafeFieldFactory().createCachedField(fieldClass, field, this);
 		} else {
 			cachedField = getObjectFieldFactory().createCachedField(fieldClass, field, this);
 			if (config.isOptimizedGenerics()) {
@@ -384,7 +413,6 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 				else if (fieldGenericType != null) {
 					Class[] cachedFieldGenerics = FieldSerializerGenericsUtil.getGenerics(fieldGenericType, kryo);
 					((ObjectField)cachedField).generics = cachedFieldGenerics;
-					if (TRACE) trace("kryo", "Field generics: " + Arrays.toString(cachedFieldGenerics));
 				}
 			}
 		}
@@ -401,20 +429,20 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 		return objectFieldFactory;
 	}
 
-	private CachedFieldFactory getUnsafeFieldFactory () {
-		// Use reflection to load UnsafeFieldFactory, so that there is no explicit dependency
-		// on anything using Unsafe. This is required to make FieldSerializer work on those
-		// platforms that do not support sun.misc.Unsafe properly.
-		if (unsafeFieldFactory == null) {
-			try {
-				unsafeFieldFactory = (CachedFieldFactory)this.getClass().getClassLoader()
-					.loadClass("com.esotericsoftware.kryo.serializers.UnsafeCachedFieldFactory").newInstance();
-			} catch (Exception e) {
-				throw new RuntimeException("Cannot create UnsafeFieldFactory", e);
-			}
-		}
-		return unsafeFieldFactory;
-	}
+//	private CachedFieldFactory getUnsafeFieldFactory () {
+//		// Use reflection to load UnsafeFieldFactory, so that there is no explicit dependency
+//		// on anything using Unsafe. This is required to make FieldSerializer work on those
+//		// platforms that do not support sun.misc.Unsafe properly.
+//		if (unsafeFieldFactory == null) {
+//			try {
+//				unsafeFieldFactory = (CachedFieldFactory)this.getClass().getClassLoader()
+//					.loadClass("android.fluid.kryo.serializers.UnsafeCachedFieldFactory").newInstance();
+//			} catch (Exception e) {
+//				throw new RuntimeException("Cannot create UnsafeFieldFactory", e);
+//			}
+//		}
+//		return unsafeFieldFactory;
+//	}
 
 	public int compare (CachedField o1, CachedField o2) {
 		// Fields are sorted by alpha so the order of the data is known.
@@ -489,7 +517,58 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 	 * TODO: Cache serializer instances generated for a given set of generic parameters. Reuse it later instead of recomputing
 	 * every time. */
 	public void write (Kryo kryo, Output output, T object) {
-		if (TRACE) trace("kryo", "FieldSerializer.write fields of class: " + object.getClass().getName());
+		/* mobiledui: start */
+		if (Context.class.isAssignableFrom(object.getClass())) {
+			output.writeVarInt(IS_CONTEXT, true);
+			return;
+		}
+		else if (DecorView.class.isAssignableFrom(object.getClass())) {
+			output.writeVarInt(IS_DECOR_VIEW, true);
+			return;
+		}
+		else if (WindowManager.class.isAssignableFrom(object.getClass())) {
+			output.writeVarInt(IS_WINDOW_MANAGER, true);
+			return;
+		}
+		else if (PhoneWindow.class.isAssignableFrom(object.getClass())) {
+			output.writeVarInt(IS_PHONE_WINDOW, true);
+			return;
+		}
+		else if (Selection.SELECTION_START == object) {
+			output.writeVarInt(IS_SELECTION_START, true);
+			return;
+		}
+		else if (Selection.SELECTION_END == object) {
+			output.writeVarInt(IS_SELECTION_END, true);
+			return;
+		}
+		else if (Resources.class.isAssignableFrom(object.getClass())) {
+			output.writeVarInt(IS_RESOURCES, true);
+			return;
+		}
+		else if (Handler.class.isAssignableFrom(object.getClass())) {
+			output.writeVarInt(IS_HANDLER, true);
+			return;
+		}
+		else
+			output.writeVarInt(Kryo.NULL, true);
+
+		if (object.zObjectId == 0) {
+			object.zObjectId = kryo.assignObjId();
+			kryo.mIdToObj.put(object.zObjectId, object);
+		}
+		output.writeVarInt(object.zObjectId, true);
+		
+		// If the RPC gadget isn't installed, do it.
+		Class clazz = object.getClass();
+		if ((clazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+			Kryo.installRpcGadget(clazz);
+
+		try {
+			Method method = clazz.getMethod("flattenForFLUID", null);
+			method.invoke(object);
+		} catch (Exception e) {}
+		/* mobiledui: end */
 
 		if (config.isOptimizedGenerics()) {
 			if (typeParameters != null && generics != null) {
@@ -517,10 +596,35 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 			// Pop the scope for generics
 			kryo.getGenericsResolver().popScope();
 		}
+
+		/* mobiledui: start */
+		if (object.zObjectId != 0)
+			object.zFLUIDFlags |= (Kryo.MIGRATED | Kryo.REMOTE_DEVICE);
+		/* mobiledui: end */
 	}
 
 	public T read (Kryo kryo, Input input, Class<T> type) {
 		try {
+			/* mobiledui: start */
+			int what = input.readVarInt(true);
+			if (what == IS_CONTEXT)
+				return (T) kryo.mAppContext;
+			else if (what == IS_DECOR_VIEW)
+				return (T) kryo.mDecor;
+			else if (what == IS_WINDOW_MANAGER)
+				return (T) kryo.mWindowManager;
+			else if (what == IS_PHONE_WINDOW)
+				return (T) kryo.mWindow;
+			else if (what == IS_SELECTION_START)
+				return (T) Selection.SELECTION_START;
+			else if (what == IS_SELECTION_END)
+				return (T) Selection.SELECTION_END;
+			else if (what == IS_RESOURCES)
+				return (T) kryo.mResources;
+			else if (what == IS_HANDLER)
+				return (T) new Handler(kryo.mAppContext.getMainLooper());
+			int objectId = input.readVarInt(true);
+			/* mobiledui: end */
 
 			if (config.isOptimizedGenerics()) {
 				if (typeParameters != null && generics != null) {
@@ -547,6 +651,26 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 				for (int i = 0, n = transientFields.length; i < n; i++)
 					transientFields[i].read(input, object);
 			}
+
+			/* mobiledui: start */
+			if (objectId != 0) {
+				object.zObjectId = objectId;
+				object.zFLUIDFlags |= Kryo.MIGRATED;
+				kryo.mIdToObj.put(objectId, object);
+			}
+
+			// If the RPC gadget isn't installed, do it.
+			Class clazz = object.getClass();
+			if ((clazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+				Kryo.installRpcGadget(clazz);
+
+			// Check if the class has unflattenForFLUID() to invoke
+			try {
+				Method method = clazz.getMethod("unflattenForFLUID", null);
+				method.invoke(object);
+			} catch (Exception e) {}
+			/* mobiledui: end */
+
 			return object;
 		} finally {
 			if (config.isOptimizedGenerics() && genericsScope != null && kryo.getGenericsResolver() != null) {
@@ -555,6 +679,65 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 			}
 		}
 	}
+
+	/* mobiledui: start */
+	@Override
+	public void read (Kryo kryo, Input input, Class type, Object object) {
+		try {
+			// it's always View class
+			input.readVarInt(true);
+			int objectId = input.readVarInt(true);
+
+			if (config.isOptimizedGenerics()) {
+				if (typeParameters != null && generics != null) {
+					// Rebuild fields info. It may result in rebuilding the
+					// genericScope
+					rebuildCachedFields();
+				}
+
+				if (genericsScope != null) {
+					// Push a new scope for generics
+					kryo.getGenericsResolver().pushScope(type, genericsScope);
+				}
+			}
+
+			kryo.reference(object);
+
+			CachedField[] fields = this.fields;
+			for (int i = 0, n = fields.length; i < n; i++) 
+				fields[i].read(input, object);
+
+			// De-serialize transient fields
+			if (config.isSerializeTransient()) {
+				for (int i = 0, n = transientFields.length; i < n; i++)
+					transientFields[i].read(input, object);
+			}
+
+			if (objectId != 0) {
+				object.zObjectId = objectId;
+				object.zFLUIDFlags |= Kryo.MIGRATED;
+				kryo.mIdToObj.put(objectId, object);
+			}
+
+			// If the RPC gadget isn't installed, do it.
+			Class clazz = object.getClass();
+			if ((clazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+				Kryo.installRpcGadget(clazz);
+
+			// Check if the class has unflattenForFLUID() to invoke
+			try {
+				Method method = object.getClass().getMethod("unflattenForFLUID", null);
+				method.invoke(object);
+			} catch (Exception e) {}
+		} finally {
+			if (config.isOptimizedGenerics() && genericsScope != null 
+					&& kryo.getGenericsResolver() != null) {
+				// Pop the scope for generics
+				kryo.getGenericsResolver().popScope();
+			}
+		}
+	}
+	/* mobiledui: end */
 
 	/** Used by {@link #read(Kryo, Input, Class)} to create the new object. This can be overridden to customize object creation, eg
 	 * to call a constructor with arguments. The default implementation uses {@link Kryo#newInstance(Class)}. */

@@ -17,21 +17,25 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.util;
+package android.fluid.kryo.util;
 
-import static com.esotericsoftware.kryo.util.Util.*;
-import static com.esotericsoftware.minlog.Log.*;
+import static android.fluid.kryo.util.Util.*;
 
-import com.esotericsoftware.kryo.ClassResolver;
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryo.Registration;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import android.fluid.kryo.ClassResolver;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.KryoException;
+import android.fluid.kryo.Registration;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
 
 /** Resolves classes by ID or by fully qualified class name.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public class DefaultClassResolver implements ClassResolver {
+	/* mobiledui: start */
+    private static final String DUI_TAG = "MOBILEDUI(DefaultClassResolver)";
+    private static final boolean DUI_DEBUG = false;
+	/* mobiledui: end */
 	static public final byte NAME = -1;
 
 	protected Kryo kryo;
@@ -56,14 +60,7 @@ public class DefaultClassResolver implements ClassResolver {
 	public Registration register (Registration registration) {
 		if (registration == null) throw new IllegalArgumentException("registration cannot be null.");
 		if (registration.getId() != NAME) {
-			if (TRACE) {
-				trace("kryo", "Register class ID " + registration.getId() + ": " + className(registration.getType()) + " ("
-					+ registration.getSerializer().getClass().getName() + ")");
-			}
 			idToRegistration.put(registration.getId(), registration);
-		} else if (TRACE) {
-			trace("kryo", "Register class name: " + className(registration.getType()) + " ("
-				+ registration.getSerializer().getClass().getName() + ")");
 		}
 		classToRegistration.put(registration.getType(), registration);
 		if (registration.getType().isPrimitive()) classToRegistration.put(getWrapperClass(registration.getType()), registration);
@@ -90,7 +87,6 @@ public class DefaultClassResolver implements ClassResolver {
 
 	public Registration writeClass (Output output, Class type) {
 		if (type == null) {
-			if (TRACE || (DEBUG && kryo.getDepth() == 1)) log("Write", null);
 			output.writeVarInt(Kryo.NULL, true);
 			return null;
 		}
@@ -98,7 +94,6 @@ public class DefaultClassResolver implements ClassResolver {
 		if (registration.getId() == NAME)
 			writeName(output, type, registration);
 		else {
-			if (TRACE) trace("kryo", "Write class " + registration.getId() + ": " + className(type));
 			output.writeVarInt(registration.getId() + 2, true);
 		}
 		return registration;
@@ -109,13 +104,11 @@ public class DefaultClassResolver implements ClassResolver {
 		if (classToNameId != null) {
 			int nameId = classToNameId.get(type, -1);
 			if (nameId != -1) {
-				if (TRACE) trace("kryo", "Write class name reference " + nameId + ": " + className(type));
 				output.writeVarInt(nameId, true);
 				return;
 			}
 		}
 		// Only write the class name the first time encountered in object graph.
-		if (TRACE) trace("kryo", "Write class name: " + className(type));
 		int nameId = nextNameId++;
 		if (classToNameId == null) classToNameId = new IdentityObjectIntMap();
 		classToNameId.put(type, nameId);
@@ -127,7 +120,6 @@ public class DefaultClassResolver implements ClassResolver {
 		int classID = input.readVarInt(true);
 		switch (classID) {
 		case Kryo.NULL:
-			if (TRACE || (DEBUG && kryo.getDepth() == 1)) log("Read", null);
 			return null;
 		case NAME + 2: // Offset for NAME and NULL.
 			return readName(input);
@@ -135,7 +127,6 @@ public class DefaultClassResolver implements ClassResolver {
 		if (classID == memoizedClassId) return memoizedClassIdValue;
 		Registration registration = idToRegistration.get(classID - 2);
 		if (registration == null) throw new KryoException("Encountered unregistered class ID: " + (classID - 2));
-		if (TRACE) trace("kryo", "Read class " + (classID - 2) + ": " + className(registration.getType()));
 		memoizedClassId = classID;
 		memoizedClassIdValue = registration;
 		return registration;
@@ -153,20 +144,23 @@ public class DefaultClassResolver implements ClassResolver {
 				try {
 					type = Class.forName(className, false, kryo.getClassLoader());
 				} catch (ClassNotFoundException ex) {
-					if (WARN) warn("kryo", "Unable to load class " + className + " with kryo's ClassLoader. Retrying with current..");
 					try {
 						type = Class.forName(className);
 					} catch (ClassNotFoundException e) {
-						throw new KryoException("Unable to find class: " + className, ex);
+						//throw new KryoException("Unable to find class: " + className, ex);
+						/* mobiledui: start */
+						try {
+							type = kryo.mDexLoader.loadClass(className);
+						} catch (ClassNotFoundException e2) {
+							throw new KryoException("Unable to find class: " + className, ex);
+						}
+						/* mobiledui: end */
 					}
 				}
 				if (nameToClass == null) nameToClass = new ObjectMap();
 				nameToClass.put(className, type);
 			}
 			nameIdToClass.put(nameId, type);
-			if (TRACE) trace("kryo", "Read class name: " + className);
-		} else {
-			if (TRACE) trace("kryo", "Read class name reference " + nameId + ": " + className(type));
 		}
 		return kryo.getRegistration(type);
 	}

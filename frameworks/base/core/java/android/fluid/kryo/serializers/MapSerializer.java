@@ -17,7 +17,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
+package android.fluid.kryo.serializers;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -27,15 +27,16 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.Serializer;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
 
 /** Serializes objects that implement the {@link Map} interface.
  * <p>
  * With the default constructor, a map requires a 1-3 byte header and an extra 4 bytes is written for each key/value pair.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public class MapSerializer extends Serializer<Map> {
 	private Class keyClass, valueClass;
 	private Serializer keySerializer, valueSerializer;
@@ -81,6 +82,13 @@ public class MapSerializer extends Serializer<Map> {
 	}
 
 	public void write (Kryo kryo, Output output, Map map) {
+		/* mobiledui: start */
+		output.writeVarInt(map.zObjectId, true);
+		Class clazz = map.getClass();
+		if ((clazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+			Kryo.installRpcGadget(clazz);
+		/* mobiledui: end */
+
 		int length = map.size();
 		output.writeInt(length, true);
 
@@ -112,6 +120,11 @@ public class MapSerializer extends Serializer<Map> {
 			} else
 				kryo.writeClassAndObject(output, entry.getValue());
 		}
+
+		/* mobiledui: start */
+		if (map.zObjectId != 0)
+			map.zFLUIDFlags |= (Kryo.MIGRATED | Kryo.REMOTE_DEVICE);
+		/* mobiledui: end */
 	}
 
 	/** Used by {@link #read(Kryo, Input, Class)} to create the new object. This can be overridden to customize object creation, eg
@@ -121,6 +134,9 @@ public class MapSerializer extends Serializer<Map> {
 	}
 
 	public Map read (Kryo kryo, Input input, Class<Map> type) {
+		/* mobiledui: start */
+		int objectId = input.readVarInt(true);
+		/* mobiledui: end */
 		Map map = create(kryo, input, type);
 		int length = input.readInt(true);
 
@@ -161,6 +177,18 @@ public class MapSerializer extends Serializer<Map> {
 				value = kryo.readClassAndObject(input);
 			map.put(key, value);
 		}
+
+		/* mobiledui: start */
+		if (objectId != 0) {
+			map.zObjectId = objectId;
+			map.zFLUIDFlags |= Kryo.MIGRATED;
+			kryo.mIdToObj.put(objectId, map);
+		}
+		Class clazz = map.getClass();
+		if ((clazz.zFLUIDFlags & Kryo.RPC_INSTALLED) == 0) 
+			Kryo.installRpcGadget(clazz);
+		/* mobiledui: end */
+
 		return map;
 	}
 

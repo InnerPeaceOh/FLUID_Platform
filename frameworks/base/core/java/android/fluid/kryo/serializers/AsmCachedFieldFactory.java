@@ -17,23 +17,24 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
+package android.fluid.kryo.serializers;
 
 import java.lang.reflect.Field;
 
-import com.esotericsoftware.kryo.serializers.AsmCacheFields.AsmBooleanField;
-import com.esotericsoftware.kryo.serializers.AsmCacheFields.AsmByteField;
-import com.esotericsoftware.kryo.serializers.AsmCacheFields.AsmCharField;
-import com.esotericsoftware.kryo.serializers.AsmCacheFields.AsmDoubleField;
-import com.esotericsoftware.kryo.serializers.AsmCacheFields.AsmFloatField;
-import com.esotericsoftware.kryo.serializers.AsmCacheFields.AsmIntField;
-import com.esotericsoftware.kryo.serializers.AsmCacheFields.AsmLongField;
-import com.esotericsoftware.kryo.serializers.AsmCacheFields.AsmObjectField;
-import com.esotericsoftware.kryo.serializers.AsmCacheFields.AsmShortField;
-import com.esotericsoftware.kryo.serializers.AsmCacheFields.AsmStringField;
-import com.esotericsoftware.kryo.serializers.FieldSerializer.CachedField;
-import com.esotericsoftware.kryo.serializers.FieldSerializer.CachedFieldFactory;
+import android.fluid.kryo.serializers.AsmCacheFields.AsmBooleanField;
+import android.fluid.kryo.serializers.AsmCacheFields.AsmByteField;
+import android.fluid.kryo.serializers.AsmCacheFields.AsmCharField;
+import android.fluid.kryo.serializers.AsmCacheFields.AsmDoubleField;
+import android.fluid.kryo.serializers.AsmCacheFields.AsmFloatField;
+import android.fluid.kryo.serializers.AsmCacheFields.AsmIntField;
+import android.fluid.kryo.serializers.AsmCacheFields.AsmLongField;
+import android.fluid.kryo.serializers.AsmCacheFields.AsmObjectField;
+import android.fluid.kryo.serializers.AsmCacheFields.AsmShortField;
+import android.fluid.kryo.serializers.AsmCacheFields.AsmStringField;
+import android.fluid.kryo.serializers.FieldSerializer.CachedField;
+import android.fluid.kryo.serializers.FieldSerializer.CachedFieldFactory;
 
+/** @hide */
 class AsmCachedFieldFactory implements CachedFieldFactory {
 	public CachedField createCachedField (Class fieldClass, Field field, FieldSerializer ser) {
 		CachedField cachedField;

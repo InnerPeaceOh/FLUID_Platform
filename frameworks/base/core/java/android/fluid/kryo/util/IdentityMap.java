@@ -14,7 +14,7 @@
  * limitations under the License.
  ******************************************************************************/
 
-package com.esotericsoftware.kryo.util;
+package android.fluid.kryo.util;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -29,6 +29,7 @@ import java.util.NoSuchElementException;
  * depending on hash collisions. Load factors greater than 0.91 greatly increase the chances the map will have to rehash to the
  * next higher POT size.
  * @author Nathan Sweet */
+/** @hide */
 public class IdentityMap<K, V> {
 	// primes for hash functions 2, 3, and 4
 	private static final int PRIME2 = 0xbe1f14b1;

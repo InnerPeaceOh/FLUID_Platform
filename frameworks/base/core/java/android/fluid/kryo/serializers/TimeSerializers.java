@@ -17,9 +17,9 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
+package android.fluid.kryo.serializers;
 
-import static com.esotericsoftware.kryo.util.Util.*;
+import static android.fluid.kryo.util.Util.*;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -36,10 +36,10 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.Serializer;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
 
 /** Serializers for java.time.*, are added as default serializers if java version is >= 8.
  *
@@ -47,6 +47,7 @@ import com.esotericsoftware.kryo.io.Output;
  * should be a case where this is needed it can be changed - for now the public api should be kept as spall as possible.
  *
  * Implementation note: All serialization is inspired by oracles java.time.Ser. */
+/** @hide */
 public final class TimeSerializers {
 
 	public static void addDefaultSerializers (Kryo kryo) {

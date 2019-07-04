@@ -17,7 +17,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.util;
+package android.fluid.kryo.util;
 
 /** An unordered map where identity comparison is used for keys and the values are ints. This implementation is a cuckoo hash map
  * using 3 hashes (if table size is less than 2^16) or 4 hashes (if table size is greater than or equal to 2^16), random walking,
@@ -28,6 +28,7 @@ package com.esotericsoftware.kryo.util;
  * depending on hash collisions. Load factors greater than 0.91 greatly increase the chances the map will have to rehash to the
  * next higher POT size.
  * @author Nathan Sweet */
+/** @hide */
 public class IdentityObjectIntMap<K> {
 	// primes for hash functions 2, 3, and 4
 	private static final int PRIME2 = 0xbe1f14b1;

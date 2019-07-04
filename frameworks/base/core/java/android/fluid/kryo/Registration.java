@@ -17,15 +17,15 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo;
+package android.fluid.kryo;
 
-import static com.esotericsoftware.kryo.util.Util.*;
-import static com.esotericsoftware.minlog.Log.*;
+import static android.fluid.kryo.util.Util.*;
 
-import org.objenesis.instantiator.ObjectInstantiator;
+import android.fluid.objenesis.instantiator.ObjectInstantiator;
 
 /** Describes the {@link Serializer} and class ID to use for a class.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public class Registration {
 	private final Class type;
 	private final int id;
@@ -57,7 +57,6 @@ public class Registration {
 	public void setSerializer (Serializer serializer) {
 		if (serializer == null) throw new IllegalArgumentException("serializer cannot be null.");
 		this.serializer = serializer;
-		if (TRACE) trace("kryo", "Update registered serializer: " + type.getName() + " (" + serializer.getClass().getName() + ")");
 	}
 
 	/** @return May be null if not yet set. */

@@ -17,11 +17,10 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
-
-import static com.esotericsoftware.minlog.Log.*;
+package android.fluid.kryo.serializers;
 
 /** Configuration for TaggedFieldSerializer instances. */
+/** @hide */
 public class TaggedFieldSerializerConfig extends FieldSerializerConfig {
 
 	private boolean skipUnknownTags = false;
@@ -38,7 +37,6 @@ public class TaggedFieldSerializerConfig extends FieldSerializerConfig {
 	 *                          KryoException will be thrown whenever unknown tags are encountered. */
 	public void setSkipUnknownTags (boolean skipUnknownTags) {
 		this.skipUnknownTags = skipUnknownTags;
-		if (TRACE) trace("kryo.TaggedFieldSerializerConfig", "setSkipUnknownTags: " + skipUnknownTags);
 	}
 
 	/**

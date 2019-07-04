@@ -17,18 +17,19 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.util;
+package android.fluid.kryo.util;
 
 import java.util.ArrayList;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.ReferenceResolver;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.ReferenceResolver;
 
 /** Uses an {@link ArrayList} to track objects that have already been written. This is more efficient than
  * {@link MapReferenceResolver} for graphs with few objects, providing an approximate 15% increase in deserialization speed. This
  * should not be used for graphs with many objects because it uses a linear look up to find objects that have already been
  * written.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 public class ListReferenceResolver implements ReferenceResolver {
 	protected Kryo kryo;
 	protected final ArrayList seenObjects = new ArrayList();

@@ -17,7 +17,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.io;
+package android.fluid.kryo.io;
 
 import java.io.DataOutput;
 import java.io.IOException;
@@ -25,6 +25,7 @@ import java.io.IOException;
 /** A kryo implementation of {@link java.io.DataOutput}.
  *
  * @author Robert DiFalco <robert.difalco@gmail.com> */
+/** @hide */
 public class KryoDataOutput implements DataOutput {
 
 	protected Output output;

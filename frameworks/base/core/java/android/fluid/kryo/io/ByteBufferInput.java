@@ -17,7 +17,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.io;
+package android.fluid.kryo.io;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,13 +30,13 @@ import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 import java.nio.ShortBuffer;
 
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryo.util.UnsafeUtil;
+import android.fluid.kryo.KryoException;
 
 /** An InputStream that reads data from a byte array and optionally fills the byte array from another InputStream as needed.
  * Utility methods are provided for efficiently reading primitive types and strings.
  * 
  * @author Roman Levenstein <romixlev@gmail.com> */
+/** @hide */
 public class ByteBufferInput extends Input {
 	protected ByteBuffer niobuffer;
 
@@ -117,32 +117,7 @@ public class ByteBufferInput extends Input {
 	/** Releases a direct buffer. {@link #setBuffer(ByteBuffer)} must be called before any write operations can be performed. */
 	public void release () {
 		close();
-		UnsafeUtil.releaseBuffer(niobuffer);
 		niobuffer = null;
-	}
-
-	/** This constructor allows for creation of a direct ByteBuffer of a given size at a given address.
-	 * 
-	 * <p>
-	 * Typical usage could look like this snippet:
-	 * 
-	 * <pre>
-	 * // Explicitly allocate memory
-	 * long bufAddress = UnsafeUtil.unsafe().allocateMemory(4096);
-	 * // Create a ByteBufferInput using the allocated memory region
-	 * ByteBufferInput buffer = new ByteBufferInput(bufAddress, 4096);
-	 * 
-	 * // Do some operations on this buffer here
-	 * 
-	 * // Say that ByteBuffer won't be used anymore
-	 * buffer.release();
-	 * // Release the allocated region
-	 * UnsafeUtil.unsafe().freeMemory(bufAddress);
-	 * </pre>
-	 * 
-	 * @param address starting address of a memory region pre-allocated using Unsafe.allocateMemory() */
-	public ByteBufferInput (long address, int size) {
-		setBuffer(UnsafeUtil.getDirectBufferAt(address, size));
 	}
 
 	public ByteBuffer getByteBuffer () {

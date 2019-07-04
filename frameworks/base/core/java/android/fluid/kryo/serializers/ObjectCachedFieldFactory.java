@@ -17,21 +17,22 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
+package android.fluid.kryo.serializers;
 
 import java.lang.reflect.Field;
 
-import com.esotericsoftware.kryo.serializers.FieldSerializer.CachedField;
-import com.esotericsoftware.kryo.serializers.FieldSerializer.CachedFieldFactory;
-import com.esotericsoftware.kryo.serializers.ObjectField.ObjectBooleanField;
-import com.esotericsoftware.kryo.serializers.ObjectField.ObjectByteField;
-import com.esotericsoftware.kryo.serializers.ObjectField.ObjectCharField;
-import com.esotericsoftware.kryo.serializers.ObjectField.ObjectDoubleField;
-import com.esotericsoftware.kryo.serializers.ObjectField.ObjectFloatField;
-import com.esotericsoftware.kryo.serializers.ObjectField.ObjectIntField;
-import com.esotericsoftware.kryo.serializers.ObjectField.ObjectLongField;
-import com.esotericsoftware.kryo.serializers.ObjectField.ObjectShortField;
+import android.fluid.kryo.serializers.FieldSerializer.CachedField;
+import android.fluid.kryo.serializers.FieldSerializer.CachedFieldFactory;
+import android.fluid.kryo.serializers.ObjectField.ObjectBooleanField;
+import android.fluid.kryo.serializers.ObjectField.ObjectByteField;
+import android.fluid.kryo.serializers.ObjectField.ObjectCharField;
+import android.fluid.kryo.serializers.ObjectField.ObjectDoubleField;
+import android.fluid.kryo.serializers.ObjectField.ObjectFloatField;
+import android.fluid.kryo.serializers.ObjectField.ObjectIntField;
+import android.fluid.kryo.serializers.ObjectField.ObjectLongField;
+import android.fluid.kryo.serializers.ObjectField.ObjectShortField;
 
+/** @hide */
 class ObjectCachedFieldFactory implements CachedFieldFactory {
 	public CachedField createCachedField (Class fieldClass, Field field, FieldSerializer ser) {
 		CachedField cachedField;

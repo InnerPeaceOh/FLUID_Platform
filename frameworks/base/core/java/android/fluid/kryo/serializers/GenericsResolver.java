@@ -17,9 +17,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
-
-import static com.esotericsoftware.minlog.Log.*;
+package android.fluid.kryo.serializers;
 
 import java.util.LinkedList;
 
@@ -28,6 +26,7 @@ import java.util.LinkedList;
  * Helper class that resolves a type name variable to a concrete class using the current class serialization stack
  *
  * @author Jeroen van Erp <jeroen@hierynomus.com> */
+/** @hide */
 public final class GenericsResolver {
 	private LinkedList<Generics> stack = new LinkedList<Generics>();
 
@@ -47,7 +46,6 @@ public final class GenericsResolver {
 	}
 
 	void pushScope (Class type, Generics scope) {
-		if (TRACE) trace("generics", "Settting a new generics scope for class " + type.getName() + ": " + scope);
 		stack.addFirst(scope);
 	}
 

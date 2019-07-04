@@ -17,12 +17,12 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.factories;
+package android.fluid.kryo.factories;
 
-import static com.esotericsoftware.kryo.util.Util.*;
+import static android.fluid.kryo.util.Util.*;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.Serializer;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.Serializer;
 
 /** This factory instantiates new serializers of a given class via reflection. The constructors of the given
  * {@code serializerClass} must either take an instance of {@link Kryo} and an instance of {@link Class} as its parameter, take
@@ -30,6 +30,7 @@ import com.esotericsoftware.kryo.Serializer;
  * found, the first found constructor is used, in the order as they were just described.
  *
  * @author Rafael Winterhalter <rafael.wth@web.de> */
+/** @hide */
 public class ReflectionSerializerFactory implements SerializerFactory {
 
 	private final Class<? extends Serializer> serializerClass;

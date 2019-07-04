@@ -17,7 +17,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
+package android.fluid.kryo.serializers;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -25,14 +25,14 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.reflect.Method;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.KryoObjectInput;
-import com.esotericsoftware.kryo.io.KryoObjectOutput;
-import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.util.ObjectMap;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.KryoException;
+import android.fluid.kryo.Serializer;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.KryoObjectInput;
+import android.fluid.kryo.io.KryoObjectOutput;
+import android.fluid.kryo.io.Output;
+import android.fluid.kryo.util.ObjectMap;
 
 /** Writes using the objects externalizable interface if it can reliably do so. Typically, a object can be efficiently written
  * with Kryo and Java's externalizable interface. However, there may be behavior problems if the class uses either the
@@ -43,6 +43,7 @@ import com.esotericsoftware.kryo.util.ObjectMap;
  * {@code JavaSerializer} it may have an {@code readResolve} method that returns an object of a different type.
  *
  * @author Robert DiFalco <robert.difalco@gmail.com> */
+/** @hide */
 public class ExternalizableSerializer extends Serializer {
 
 	private ObjectMap<Class, JavaSerializer> javaSerializerByType;

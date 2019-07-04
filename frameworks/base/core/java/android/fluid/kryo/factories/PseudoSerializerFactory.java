@@ -17,10 +17,10 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.factories;
+package android.fluid.kryo.factories;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.Serializer;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.Serializer;
 
 /** A serializer factory that always returns a given serializer instance. This implementation of {@link SerializerFactory} is not
  * a real factory since it only provides a given instance instead of dynamically creating new serializers. It can be used when all
@@ -28,6 +28,7 @@ import com.esotericsoftware.kryo.Serializer;
  * instances.
  *
  * @author Rafael Winterhalter <rafael.wth@web.de> */
+/** @hide */
 public class PseudoSerializerFactory implements SerializerFactory {
 
 	private final Serializer<?> serializer;

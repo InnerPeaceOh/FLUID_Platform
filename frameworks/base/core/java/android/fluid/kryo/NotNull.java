@@ -17,18 +17,19 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo;
+package android.fluid.kryo;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import com.esotericsoftware.kryo.serializers.FieldSerializer;
+import android.fluid.kryo.serializers.FieldSerializer;
 
 /** Indicates a field can never be null when it is being serialized and deserialized. Some serializers use this to save space. Eg,
  * {@link FieldSerializer} may save 1 byte per field.
  * @author Nathan Sweet <misc@n4te.com> */
+/** @hide */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface NotNull {

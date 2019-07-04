@@ -1,14 +1,15 @@
 
-package com.esotericsoftware.kryo.serializers;
+package android.fluid.kryo.serializers;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.KryoException;
+import android.fluid.kryo.Serializer;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
 
 /** Serializes enums using the enum's name. This prevents invalidating previously serialized byts when the enum order changes.
  * @author KwonNam Son <kwon37xi@gmail.com> */
+/** @hide */
 public class EnumNameSerializer extends Serializer<Enum> {
 	private final Class<? extends Enum> enumType;
 	private final Serializer stringSerializer;

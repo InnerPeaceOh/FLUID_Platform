@@ -17,14 +17,14 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryo.serializers;
+package android.fluid.kryo.serializers;
 
 import java.lang.reflect.Method;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import android.fluid.kryo.Kryo;
+import android.fluid.kryo.Serializer;
+import android.fluid.kryo.io.Input;
+import android.fluid.kryo.io.Output;
 
 /** Serializer for Java8 closures. To serialize closures, use:
  * <p>
@@ -32,6 +32,7 @@ import com.esotericsoftware.kryo.io.Output;
  * kryo.register(java.lang.invoke.SerializedLambda.class);<br>
  * kryo.register(ClosureSerializer.Closure.class, new ClosureSerializer());</code>
  * @author Roman Levenstein <romixlev@gmail.com> */
+/** @hide */
 public class ClosureSerializer extends Serializer {
 
 	/** Marker class to bind ClosureSerializer to. See also {@link Kryo#isClosure(Class)} and
