@@ -1,5 +1,5 @@
 /**
- * Copyright 2006-2013 the original author or authors.
+ * Copyright 2006-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,29 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.objenesis;
+package android.fluid.objenesis;
 
-import org.objenesis.strategy.StdInstantiatorStrategy;
+import android.fluid.objenesis.strategy.StdInstantiatorStrategy;
 
 /**
- * Objenesis implementation using the {@link org.objenesis.strategy.StdInstantiatorStrategy}.
+ * Objenesis implementation using the {@link android.fluid.objenesis.strategy.StdInstantiatorStrategy}.
  * 
  * @author Henri Tremblay
  */
+/** @hide */
 public class ObjenesisStd extends ObjenesisBase {
 
    /**
-    * Default constructor using the {@link org.objenesis.strategy.StdInstantiatorStrategy}
+    * Default constructor using the {@link android.fluid.objenesis.strategy.StdInstantiatorStrategy}
     */
    public ObjenesisStd() {
       super(new StdInstantiatorStrategy());
    }
 
    /**
-    * Instance using the {@link org.objenesis.strategy.StdInstantiatorStrategy} with or without
-    * caching {@link org.objenesis.instantiator.ObjectInstantiator}s
+    * Instance using the {@link android.fluid.objenesis.strategy.StdInstantiatorStrategy} with or without
+    * caching {@link android.fluid.objenesis.instantiator.ObjectInstantiator}s
     * 
-    * @param useCache If {@link org.objenesis.instantiator.ObjectInstantiator}s should be cached
+    * @param useCache If {@link android.fluid.objenesis.instantiator.ObjectInstantiator}s should be cached
     */
    public ObjenesisStd(boolean useCache) {
       super(new StdInstantiatorStrategy(), useCache);

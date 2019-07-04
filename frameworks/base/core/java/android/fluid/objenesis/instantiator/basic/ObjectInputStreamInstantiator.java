@@ -1,5 +1,5 @@
 /**
- * Copyright 2006-2013 the original author or authors.
+ * Copyright 2006-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.objenesis.instantiator.basic;
+package android.fluid.objenesis.instantiator.basic;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -25,8 +25,10 @@ import java.io.ObjectStreamClass;
 import java.io.ObjectStreamConstants;
 import java.io.Serializable;
 
-import org.objenesis.ObjenesisException;
-import org.objenesis.instantiator.ObjectInstantiator;
+import android.fluid.objenesis.ObjenesisException;
+import android.fluid.objenesis.instantiator.ObjectInstantiator;
+import android.fluid.objenesis.instantiator.annotations.Instantiator;
+import android.fluid.objenesis.instantiator.annotations.Typology;
 
 /**
  * Instantiates a class by using a dummy input stream that always feeds data for an empty object of
@@ -34,10 +36,12 @@ import org.objenesis.instantiator.ObjectInstantiator;
  * defines a "readResolve" method, since it may return objects that have been returned previously
  * (i.e., there's no guarantee that the returned object is a new one), or even objects from a
  * completely different class.
- * 
+ *
  * @author Leonardo Mesquita
- * @see org.objenesis.instantiator.ObjectInstantiator
+ * @see android.fluid.objenesis.instantiator.ObjectInstantiator
  */
+/** @hide */
+@Instantiator(Typology.SERIALIZATION)
 public class ObjectInputStreamInstantiator<T> implements ObjectInstantiator<T> {
    private static class MockStream extends InputStream {
 
@@ -164,7 +168,7 @@ public class ObjectInputStreamInstantiator<T> implements ObjectInstantiator<T> {
          }
       }
       else {
-    	  throw new ObjenesisException(new NotSerializableException(clazz+" not serializable"));
+         throw new ObjenesisException(new NotSerializableException(clazz + " not serializable"));
       }
    }
 
@@ -172,7 +176,7 @@ public class ObjectInputStreamInstantiator<T> implements ObjectInstantiator<T> {
    public T newInstance() {
       try {
          return (T) inputStream.readObject();
-      }      
+      }
       catch(ClassNotFoundException e) {
          throw new Error("ClassNotFoundException: " + e.getMessage());
       }

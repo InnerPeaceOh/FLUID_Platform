@@ -13,22 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package android.fluid.objenesis.instantiator;
+package android.fluid.objenesis.instantiator.annotations;
 
 /**
- * Instantiates a new object.
- * 
- * @author Leonardo Mesquita
+ * Possible types of instantiator
+ * @author Henri Tremblay
  */
 /** @hide */
-public interface ObjectInstantiator<T> {
+public enum Typology {
+   /**
+    * Mark an instantiator used for standard instantiation (not calling a constructor).
+    */
+   STANDARD,
 
    /**
-    * Returns a new instance of an object. The returned object's class is defined by the
-    * implementation.
-    * 
-    * @return A new instance of an object.
+    * Mark an instantiator used for serialization.
     */
-   T newInstance();
+   SERIALIZATION,
 
+   /**
+    * Mark an instantiator that doesn't behave like a {@link #STANDARD} nor a {@link #SERIALIZATION} (e.g. calls a constructor, fails
+    * all the time, etc.)
+    */
+   NOT_COMPLIANT,
+
+   /**
+    * No type specified on the instantiator class
+    */
+   UNKNOWN
 }

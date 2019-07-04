@@ -13,22 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package android.fluid.objenesis.instantiator;
+package android.fluid.objenesis.instantiator.annotations;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Instantiates a new object.
- * 
- * @author Leonardo Mesquita
+ * Denote that the class in an instantiator of a given type
+ *
+ * @author Henri Tremblay
  */
 /** @hide */
-public interface ObjectInstantiator<T> {
+@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface Instantiator {
 
    /**
-    * Returns a new instance of an object. The returned object's class is defined by the
-    * implementation.
-    * 
-    * @return A new instance of an object.
+    * @return type of instantiator
     */
-   T newInstance();
-
+   Typology value();
 }

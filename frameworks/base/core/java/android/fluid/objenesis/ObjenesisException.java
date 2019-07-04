@@ -1,5 +1,5 @@
 /**
- * Copyright 2006-2013 the original author or authors.
+ * Copyright 2006-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.objenesis;
+package android.fluid.objenesis;
 
 /**
  * Exception thrown by Objenesis. It wraps any instantiation exceptions. Note that this exception is
@@ -21,6 +21,7 @@ package org.objenesis;
  * 
  * @author Henri Tremblay
  */
+/** @hide */
 public class ObjenesisException extends RuntimeException {
 
    private static final long serialVersionUID = -2677230016262426968L;

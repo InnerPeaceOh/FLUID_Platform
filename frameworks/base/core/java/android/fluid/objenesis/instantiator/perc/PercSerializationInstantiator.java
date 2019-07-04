@@ -1,5 +1,5 @@
 /**
- * Copyright 2006-2013 the original author or authors.
+ * Copyright 2006-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,25 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.objenesis.instantiator.perc;
+package android.fluid.objenesis.instantiator.perc;
 
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import org.objenesis.ObjenesisException;
-import org.objenesis.instantiator.ObjectInstantiator;
+import android.fluid.objenesis.ObjenesisException;
+import android.fluid.objenesis.instantiator.ObjectInstantiator;
+import android.fluid.objenesis.instantiator.annotations.Instantiator;
+import android.fluid.objenesis.instantiator.annotations.Typology;
 
 /**
  * Instantiates a class by making a call to internal Perc private methods. It is only supposed to
  * work on Perc JVMs. This instantiator will create classes in a way compatible with serialization,
- * calling the first non-serializable superclass' no-arg constructor. <p/> Based on code provided by
- * Aonix but <b>doesn't work right now</b>
- * 
+ * calling the first non-serializable superclass' no-arg constructor.
+ * <p>
+ * Based on code provided by Aonix but <b>doesn't work right now</b>
+ *
  * @author Henri Tremblay
- * @see org.objenesis.instantiator.ObjectInstantiator
+ * @see android.fluid.objenesis.instantiator.ObjectInstantiator
  */
+/** @hide */
+@Instantiator(Typology.SERIALIZATION)
 public class PercSerializationInstantiator<T> implements ObjectInstantiator<T> {
 
    private Object[] typeArgs;

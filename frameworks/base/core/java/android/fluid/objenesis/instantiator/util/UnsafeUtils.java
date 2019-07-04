@@ -13,37 +13,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package android.fluid.objenesis.instantiator.basic;
+package android.fluid.objenesis.instantiator.util;
+
+import java.lang.reflect.Field;
 
 import android.fluid.objenesis.ObjenesisException;
-import android.fluid.objenesis.instantiator.ObjectInstantiator;
-import android.fluid.objenesis.instantiator.annotations.Instantiator;
-import android.fluid.objenesis.instantiator.annotations.Typology;
+
+import sun.misc.Unsafe;
 
 /**
- * The simplest instantiator - simply calls Class.newInstance(). This can deal with default public
- * constructors, but that's about it.
+ * Helper class basically allowing to get access to {@code sun.misc.Unsafe}
  *
- * @author Joe Walnes
- * @see ObjectInstantiator
+ * @author Henri Tremblay
  */
 /** @hide */
-@Instantiator(Typology.NOT_COMPLIANT)
-public class NewInstanceInstantiator<T> implements ObjectInstantiator<T> {
+public final class UnsafeUtils {
 
-   private final Class<T> type;
+   private static final Unsafe unsafe;
 
-   public NewInstanceInstantiator(Class<T> type) {
-      this.type = type;
-   }
-
-   public T newInstance() {
+   static {
+      Field f;
       try {
-         return type.newInstance();
+         f = Unsafe.class.getDeclaredField("theUnsafe");
+      } catch (NoSuchFieldException e) {
+         throw new ObjenesisException(e);
       }
-      catch(Exception e) {
+      f.setAccessible(true);
+      try {
+         unsafe = (Unsafe) f.get(null);
+      } catch (IllegalAccessException e) {
          throw new ObjenesisException(e);
       }
    }
 
+   private UnsafeUtils() {}
+
+   public static Unsafe getUnsafe() {
+      return unsafe;
+   }
 }

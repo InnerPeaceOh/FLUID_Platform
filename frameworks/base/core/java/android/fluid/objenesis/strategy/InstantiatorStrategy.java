@@ -1,5 +1,5 @@
 /**
- * Copyright 2006-2013 the original author or authors.
+ * Copyright 2006-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.objenesis.strategy;
+package android.fluid.objenesis.strategy;
 
-import org.objenesis.instantiator.ObjectInstantiator;
+import android.fluid.objenesis.instantiator.ObjectInstantiator;
 
 /**
  * Defines a strategy to determine the best instantiator for a class.
  * 
  * @author Henri Tremblay
  */
+/** @hide */
 public interface InstantiatorStrategy {
 
    /**
     * Create a dedicated instantiator for the given class
-    * 
+    *
+    * @param <T> Type to instantiate
     * @param type Class that will be instantiated
     * @return Dedicated instantiator
     */

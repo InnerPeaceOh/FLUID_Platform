@@ -1,5 +1,5 @@
 /**
- * Copyright 2006-2013 the original author or authors.
+ * Copyright 2006-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.objenesis.strategy;
-
-import static org.objenesis.strategy.PlatformDescription.*;
+package android.fluid.objenesis.strategy;
 
 import java.io.NotSerializableException;
 import java.io.Serializable;
 
-import org.objenesis.ObjenesisException;
-import org.objenesis.instantiator.ObjectInstantiator;
-import org.objenesis.instantiator.android.AndroidSerializationInstantiator;
-import org.objenesis.instantiator.basic.ObjectStreamClassInstantiator;
-import org.objenesis.instantiator.gcj.GCJSerializationInstantiator;
-import org.objenesis.instantiator.perc.PercSerializationInstantiator;
+import android.fluid.objenesis.ObjenesisException;
+import android.fluid.objenesis.instantiator.ObjectInstantiator;
+import android.fluid.objenesis.instantiator.android.AndroidSerializationInstantiator;
+import android.fluid.objenesis.instantiator.basic.ObjectInputStreamInstantiator;
+import android.fluid.objenesis.instantiator.basic.ObjectStreamClassInstantiator;
+import android.fluid.objenesis.instantiator.gcj.GCJSerializationInstantiator;
+import android.fluid.objenesis.instantiator.perc.PercSerializationInstantiator;
+import android.fluid.objenesis.instantiator.sun.SunReflectionFactorySerializationInstantiator;
+
+import static android.fluid.objenesis.strategy.PlatformDescription.*;
 
 /**
  * Guess the best serializing instantiator for a given class. The returned instantiator will
@@ -38,27 +40,36 @@ import org.objenesis.instantiator.perc.PercSerializationInstantiator;
  * <li>JVM vendor version</li>
  * </ul>
  * However, instantiators are stateful and so dedicated to their class.
- * 
+ *
  * @author Henri Tremblay
  * @see ObjectInstantiator
  */
+/** @hide */
 public class SerializingInstantiatorStrategy extends BaseInstantiatorStrategy {
 
    /**
     * Return an {@link ObjectInstantiator} allowing to create instance following the java
     * serialization framework specifications.
-    * 
+    *
     * @param type Class to instantiate
     * @return The ObjectInstantiator for the class
     */
+	/** @hide */
    public <T> ObjectInstantiator<T> newInstantiatorOf(Class<T> type) {
       if(!Serializable.class.isAssignableFrom(type)) {
          throw new ObjenesisException(new NotSerializableException(type+" not serializable"));
       }
-      if(JVM_NAME.startsWith(SUN) || PlatformDescription.isThisJVM(OPENJDK)) {
-         return new ObjectStreamClassInstantiator<T>(type);
+      if(JVM_NAME.startsWith(HOTSPOT) || PlatformDescription.isThisJVM(OPENJDK)) {
+         // Java 7 GAE was under a security manager so we use a degraded system
+         if(isGoogleAppEngine() && PlatformDescription.SPECIFICATION_VERSION.equals("1.7")) {
+            return new ObjectInputStreamInstantiator<T>(type);
+         }
+         return new SunReflectionFactorySerializationInstantiator<T>(type);
       }
       else if(JVM_NAME.startsWith(DALVIK)) {
+         if(PlatformDescription.isAndroidOpenJDK()) {
+            return new ObjectStreamClassInstantiator<T>(type);
+         }
          return new AndroidSerializationInstantiator<T>(type);
       }
       else if(JVM_NAME.startsWith(GNU)) {
@@ -67,8 +78,8 @@ public class SerializingInstantiatorStrategy extends BaseInstantiatorStrategy {
       else if(JVM_NAME.startsWith(PERC)) {
          return new PercSerializationInstantiator<T>(type);
       }
-      
-      return new ObjectStreamClassInstantiator<T>(type);
+
+      return new SunReflectionFactorySerializationInstantiator<T>(type);
    }
 
 }

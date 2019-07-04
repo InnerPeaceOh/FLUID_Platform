@@ -1,5 +1,5 @@
 /**
- * Copyright 2006-2013 the original author or authors.
+ * Copyright 2006-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,15 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.objenesis.instantiator.basic;
+package android.fluid.objenesis.instantiator.basic;
 
-import org.objenesis.instantiator.ObjectInstantiator;
+import android.fluid.objenesis.instantiator.ObjectInstantiator;
+import android.fluid.objenesis.instantiator.annotations.Instantiator;
+import android.fluid.objenesis.instantiator.annotations.Typology;
 
 /**
  * The instantiator that always return a null instance
- * 
+ *
  * @author Henri Tremblay
  */
+/** @hide */
+@Instantiator(Typology.NOT_COMPLIANT)
 public class NullInstantiator<T> implements ObjectInstantiator<T> {
 
    public NullInstantiator(Class<T> type) {

@@ -1,5 +1,5 @@
 /**
- * Copyright 2006-2013 the original author or authors.
+ * Copyright 2006-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,22 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.objenesis.instantiator.sun;
+package android.fluid.objenesis.instantiator.sun;
 
 import java.lang.reflect.Constructor;
 
-import org.objenesis.ObjenesisException;
-import org.objenesis.instantiator.ObjectInstantiator;
+import android.fluid.objenesis.ObjenesisException;
+import android.fluid.objenesis.instantiator.ObjectInstantiator;
+import android.fluid.objenesis.instantiator.annotations.Instantiator;
+import android.fluid.objenesis.instantiator.annotations.Typology;
 
 /**
  * Instantiates an object, WITHOUT calling it's constructor, using internal
  * sun.reflect.ReflectionFactory - a class only available on JDK's that use Sun's 1.4 (or later)
  * Java implementation. This is the best way to instantiate an object without any side effects
  * caused by the constructor - however it is not available on every platform.
- * 
+ *
  * @author Joe Walnes
  * @see ObjectInstantiator
  */
+/** @hide */
+@Instantiator(Typology.STANDARD)
 public class SunReflectionFactoryInstantiator<T> implements ObjectInstantiator<T> {
 
    private final Constructor<T> mungedConstructor;

@@ -1,5 +1,5 @@
 /**
- * Copyright 2006-2013 the original author or authors.
+ * Copyright 2006-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.objenesis.instantiator.gcj;
+package android.fluid.objenesis.instantiator.gcj;
 
-import org.objenesis.ObjenesisException;
-import org.objenesis.instantiator.SerializationInstantiatorHelper;
+import android.fluid.objenesis.ObjenesisException;
+import android.fluid.objenesis.instantiator.SerializationInstantiatorHelper;
+import android.fluid.objenesis.instantiator.annotations.Instantiator;
+import android.fluid.objenesis.instantiator.annotations.Typology;
 
 /**
  * Instantiates a class by making a call to internal GCJ private methods. It is only supposed to
  * work on GCJ JVMs. This instantiator will create classes in a way compatible with serialization,
  * calling the first non-serializable superclass' no-arg constructor.
- * 
+ *
  * @author Leonardo Mesquita
- * @see org.objenesis.instantiator.ObjectInstantiator
+ * @see android.fluid.objenesis.instantiator.ObjectInstantiator
  */
+/** @hide */
+@Instantiator(Typology.SERIALIZATION)
 public class GCJSerializationInstantiator<T> extends GCJInstantiatorBase<T> {
    private Class<? super T> superType;
 

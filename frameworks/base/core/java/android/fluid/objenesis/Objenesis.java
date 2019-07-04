@@ -1,5 +1,5 @@
 /**
- * Copyright 2006-2013 the original author or authors.
+ * Copyright 2006-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.objenesis;
+package android.fluid.objenesis;
 
-import org.objenesis.instantiator.ObjectInstantiator;
+import android.fluid.objenesis.instantiator.ObjectInstantiator;
 
 /**
  * Common interface to all kind of Objenesis objects
  * 
  * @author Henri Tremblay
  */
+/** @hide */
 public interface Objenesis {
 
    /**
     * Will create a new object without any constructor being called
-    * 
+    *
+    * @param <T> Type instantiated
     * @param clazz Class to instantiate
     * @return New instance of clazz
     */
@@ -36,7 +38,8 @@ public interface Objenesis {
     * Will pick the best instantiator for the provided class. If you need to create a lot of
     * instances from the same class, it is way more efficient to create them from the same
     * ObjectInstantiator than calling {@link #newInstance(Class)}.
-    * 
+    *
+    * @param <T> Type to instantiate
     * @param clazz Class to instantiate
     * @return Instantiator dedicated to the class
     */

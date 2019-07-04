@@ -1,5 +1,5 @@
 /**
- * Copyright 2006-2013 the original author or authors.
+ * Copyright 2006-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.objenesis.strategy;
+package android.fluid.objenesis.strategy;
+
+import android.fluid.objenesis.ObjenesisException;
 
 import java.lang.reflect.Field;
 
-import org.objenesis.ObjenesisException;
-
 /**
  * List of constants describing the currently used platform.
- * 
+ *
  * @author Henri Tremblay
  */
+/** @hide */
 public final class PlatformDescription {
 
    /** JVM_NAME prefix for JRockit */
@@ -32,8 +33,16 @@ public final class PlatformDescription {
    /** JVM_NAME prefix for GCJ */
    public static final String GNU = "GNU libgcj";
 
-   /** JVM_NAME prefix for Sun Java HotSpot */
-   public static final String SUN = "Java HotSpot";
+   /** JVM_NAME prefix for Java HotSpot */
+   public static final String HOTSPOT = "Java HotSpot";
+
+   /**
+    * JVM_NAME prefix for Java HotSpot
+    *
+    * @deprecated Use {@link #HOTSPOT} instead
+    */
+   @Deprecated
+   public static final String SUN = HOTSPOT;
 
    /** JVM_NAME prefix for the OpenJDK */
    public static final String OPENJDK = "OpenJDK";
@@ -54,10 +63,10 @@ public final class PlatformDescription {
    /** JVM version */
    public static final String VM_INFO = System.getProperty("java.vm.info");
 
-   /** Vendor version */
+   /** VM vendor version */
    public static final String VENDOR_VERSION = System.getProperty("java.vm.version");
 
-   /** Vendor name */
+   /** VM vendor name */
    public static final String VENDOR = System.getProperty("java.vm.vendor");
 
    /** JVM name */
@@ -66,16 +75,72 @@ public final class PlatformDescription {
    /** Android version. Will be 0 for none android platform */
    public static final int ANDROID_VERSION = getAndroidVersion();
 
+   /** Flag telling if this version of Android is based on the OpenJDK */
+   public static final boolean IS_ANDROID_OPENJDK = getIsAndroidOpenJDK();
+
+   /** Google App Engine version or null is we are not on GAE */
+   public static final String GAE_VERSION = getGaeRuntimeVersion();
+
+   /**
+    * Describes the platform. Outputs Java version and vendor.
+    *
+    * @return Description of the current platform
+    */
+   public static String describePlatform() {
+      String desc = "Java " + SPECIFICATION_VERSION + " ("
+              + "VM vendor name=\"" + VENDOR + "\", "
+              + "VM vendor version=" + VENDOR_VERSION + ", "
+              + "JVM name=\"" + JVM_NAME + "\", "
+              + "JVM version=" + VM_VERSION + ", "
+              + "JVM info=" + VM_INFO;
+
+      // Add the API level is it's an Android platform
+      int androidVersion = ANDROID_VERSION;
+      if(androidVersion != 0) {
+         desc += ", API level=" + ANDROID_VERSION;
+      }
+      desc += ")";
+
+      return desc;
+   }
+
    /**
     * Check if the current JVM is of the type passed in parameter. Normally, this will be a constant
     * from this class. We basically do
     * <code>System.getProperty("java.vm.name").startWith(name)</code>.
-    * 
+    *
     * @param name jvm name we are looking for
     * @return if it's the requested JVM
     */
    public static boolean isThisJVM(String name) {
       return JVM_NAME.startsWith(name);
+   }
+
+   /**
+    * Check if this JVM is an Android JVM based on OpenJDK.
+    *
+    * @return if it's an Android version based on the OpenJDK. Will return false if this JVM isn't an Android JVM at all
+     */
+   public static boolean isAndroidOpenJDK() {
+      return IS_ANDROID_OPENJDK;
+   }
+
+   private static boolean getIsAndroidOpenJDK() {
+      if(getAndroidVersion() == 0) {
+         return false; // Not android at all
+      }
+      // Sadly, Android N is still API 23. So we can't base ourselves on the API level to know if it is an OpenJDK
+      // version or not
+      String bootClasspath = System.getProperty("java.boot.class.path");
+      return bootClasspath != null && bootClasspath.toLowerCase().contains("core-oj.jar");
+   }
+
+   public static boolean isGoogleAppEngine() {
+      return GAE_VERSION != null;
+   }
+
+   private static String getGaeRuntimeVersion() {
+      return System.getProperty("com.google.appengine.runtime.version");
    }
 
    private static int getAndroidVersion() {

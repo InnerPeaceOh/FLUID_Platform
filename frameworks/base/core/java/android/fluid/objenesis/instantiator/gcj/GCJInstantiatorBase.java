@@ -1,5 +1,5 @@
 /**
- * Copyright 2006-2013 the original author or authors.
+ * Copyright 2006-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.objenesis.instantiator.gcj;
+package android.fluid.objenesis.instantiator.gcj;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.lang.reflect.Method;
 
-import org.objenesis.ObjenesisException;
-import org.objenesis.instantiator.ObjectInstantiator;
+import android.fluid.objenesis.ObjenesisException;
+import android.fluid.objenesis.instantiator.ObjectInstantiator;
 
 /**
  * Base class for GCJ-based instantiators. It initializes reflection access to method
@@ -29,6 +29,7 @@ import org.objenesis.instantiator.ObjectInstantiator;
  * 
  * @author Leonardo Mesquita
  */
+/** @hide */
 public abstract class GCJInstantiatorBase<T> implements ObjectInstantiator<T> {
    static Method newObjectMethod = null;
    static ObjectInputStream dummyStream;
