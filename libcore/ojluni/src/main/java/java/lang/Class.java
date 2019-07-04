@@ -2649,6 +2649,22 @@ public final class Class<T> implements java.io.Serializable,
      */
     @FastNative
     private native Method getDeclaredMethodInternal(String name, Class<?>[] args);
+	
+	/** @hide */
+    @FastNative
+    public static native void initRpcGadget();
+
+	/** @hide */
+    @FastNative
+    public static native void setFLUIDManagerObj(Object managerObj);
+
+	/** @hide */
+    @FastNative
+	public static native void setRpcGadget(Class clazz, String methodName, String methodSig);
+
+	/** @hide */
+    @FastNative
+	public static native void cancelRpcGadget();
 
     private static class Caches {
         /**

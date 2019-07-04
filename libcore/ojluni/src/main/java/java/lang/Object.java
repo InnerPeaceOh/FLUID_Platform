@@ -42,6 +42,17 @@ public class Object {
     private transient Class<?> shadow$_klass_;
     private transient int shadow$_monitor_;
 
+	// Be careful for naming fields. 
+	// All fields of Object are sorted in alphabetical order. shadow$_klass_ will be first.
+	/** @hide */
+	// In the upper 4 bits,
+	// 0x00010000 idicate whether this object is migrated to another device (0 or 1).
+	// 0x00100000 is for a Class object and means whether RPC gadgets are installed into its methods.
+	// The lower 4 bits idicate where this object is migrated (0: local device, 1 ~ n: remote device)
+	public transient int zFLUIDFlags;   
+	/** @hide */
+	public transient int zObjectId;
+
     /**
      * Returns the runtime class of this {@code Object}. The returned
      * {@code Class} object is the object that is locked by {@code
