@@ -817,6 +817,7 @@ static void Class_initRpcGadget(JNIEnv* env, jclass) {
   chmod("/data/local/tmp/rpc_installed_methods", 0666);
 
   mkdir("/data/local/tmp/rendering_analysis", 0777);
+  chmod("/data/local/tmp/rendering_analysis", 0777);
 }
 
 static void Class_setFLUIDManagerObj(JNIEnv* env, jclass, jobject managerObj) {
