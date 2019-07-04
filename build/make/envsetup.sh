@@ -1638,7 +1638,21 @@ function _wrap_build()
     fi
     echo " ####${color_reset}"
     echo
+	
+	(build_notify $ret $hours $mins $secs)
+
     return $ret
+}
+
+function build_notify()
+{
+	if [ $1 -eq 0 ] ; then
+		(zenity --info --display=:0.0 --timeout=10 --title="Notification for FLUID build" --text="<b><span color=\"green\">#### build completed successfully ($2:$3:$4) ####</span></b>") &
+		(sleep 2 && wmctrl -F -r "Notification for FLUID build" -b add,above)
+	else
+		(zenity --info --display=:0.0 --timeout=10 --title="Notification for FLUID build" --text="<b><span color=\"red\">#### failed to build some targets ($2:$3:$4) ####</span></b>") &
+		(sleep 2 && wmctrl -F -r "Notification for FLUID build" -b add,above)
+	fi
 }
 
 function make()
