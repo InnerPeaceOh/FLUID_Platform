@@ -27,6 +27,39 @@ class SkString;
 SK_BEGIN_REQUIRE_DENSE
 class SK_API SkMatrix {
 public:
+#define FLATTEN(dst, src, size) \
+			{ \
+				memcpy(dst, src, size); \
+				dst += size; \
+			}
+
+#define UNFLATTEN(dst, src, size) \
+			{ \
+				memcpy(dst, src, size); \
+				src += size; \
+			}
+
+	size_t getSizeForFLUID() {
+		return 9 * sizeof(SkScalar) + sizeof(uint32_t);
+	}
+
+    bool flattenForFLUID(uint8_t* buffer) {
+		if (!buffer) return false;
+		FLATTEN(buffer, fMat, 9 * sizeof(SkScalar));
+		FLATTEN(buffer, &fTypeMask, sizeof(uint32_t));
+		return true;
+	}
+
+	bool unflattenForFLUID(uint8_t* buffer) {
+		if (!buffer) return false;
+		UNFLATTEN(fMat, buffer, 9 * sizeof(SkScalar));
+		UNFLATTEN(&fTypeMask, buffer, sizeof(uint32_t));
+		
+		return true;
+	}
+#undef FLATTEN
+#undef UNFLATTEN
+
     static SkMatrix SK_WARN_UNUSED_RESULT MakeScale(SkScalar sx, SkScalar sy) {
         SkMatrix m;
         m.setScale(sx, sy);
