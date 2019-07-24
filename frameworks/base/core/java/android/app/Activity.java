@@ -3348,7 +3348,7 @@ public class Activity extends ContextThemeWrapper
 			mFLUIDManager.mTouchPointNums = ev.getPointerCount();
         }
 		else if (mFLUIDManager != null && ev.getAction() == MotionEvent.ACTION_UP 
-				&& mFLUIDManager.mTouchPointNums == 3) {
+				&& (mFLUIDManager.mTouchPointNums == 3 || mFLUIDManager.mTouchPointNums == 4)) {
 			mFLUIDManager.mUiSelectionMode = !mFLUIDManager.mUiSelectionMode;
 			if (mFLUIDManager.mUiSelectionMode) {
 				Log.d(DUI_TAG, "Enter UI selection mode");
@@ -3367,6 +3367,11 @@ public class Activity extends ContextThemeWrapper
 				mOverlayView = new View(this);
 				mOverlayView.setBackgroundColor(0x4d000000);
 				mWindowManager.addView(mOverlayView, params);
+				if (mFLUIDManager.mTouchPointNums == 3)
+					mFLUIDManager.mIsReplicationMode = false;
+				else if (mFLUIDManager.mTouchPointNums == 4)
+					mFLUIDManager.mIsReplicationMode = true;
+
 			}
 			else {
 				Log.d(DUI_TAG, "Exit UI selection mode");

@@ -29,6 +29,7 @@ import android.view.ViewGroup;
 import android.view.InputEvent;
 import android.view.MotionEvent;
 import android.view.KeyEvent;
+import android.view.Gravity;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.app.Activity;
@@ -77,6 +78,7 @@ public class FLUIDManager
 	private View[] mPrevRemoteViews = null;
 	public DexClassLoader mDexLoader;
 	public ArrayList<View> mTargetViews;
+	public boolean mIsReplicationMode = false;
 
 	public final boolean mPreCachingMode = true;
 	private LinkedList<ByteArrayOutputStream> mNaiveCaches = null;
@@ -373,6 +375,9 @@ public class FLUIDManager
 				parent.addView(view);
 			}
 			mPrevRemoteViews = remoteViews;
+			
+			params = (FrameLayout.LayoutParams)remoteViews[0].getLayoutParams();
+			params.gravity = Gravity.CENTER;
 
 			dis.close();
 			totalBais.close();

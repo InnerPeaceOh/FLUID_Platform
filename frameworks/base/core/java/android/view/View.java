@@ -19351,7 +19351,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      */
     boolean draw(Canvas canvas, ViewGroup parent, long drawingTime) {
 		/* mobiledui: start */
-		if (FLUIDManager.isMigrated(this) && FLUIDManager.isInRemote(this)) {
+		if (FLUIDManager.isMigrated(this) && FLUIDManager.isInRemote(this) && !mFLUIDManager.mIsReplicationMode) {
 			if (this instanceof ViewGroup) {
 				String className = getClass().getName();
 				if (className.equals("android.support.design.widget.TextInputLayout"))
