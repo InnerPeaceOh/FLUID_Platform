@@ -818,6 +818,9 @@ static void Class_initRpcGadget(JNIEnv* env, jclass) {
 
   mkdir("/data/local/tmp/rendering_analysis", 0777);
   chmod("/data/local/tmp/rendering_analysis", 0777);
+
+  mkdir("/data/data/com.fluid.wrapperapp/app_fluid_apk", 0777);
+  chmod("/data/data/com.fluid.wrapperapp/app_fluid_apk", 0777);
 }
 
 static void Class_setFLUIDManagerObj(JNIEnv* env, jclass, jobject managerObj) {

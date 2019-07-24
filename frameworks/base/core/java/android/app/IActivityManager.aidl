@@ -643,6 +643,6 @@ interface IActivityManager {
 
 	 /* mobiledui: start */
 	 IBinder startFLUIDActivity();
-	 IBinder getAppTokenForTopActivity();
+	 void compileAPK(String fileName);
 	 /* mobiledui: end */
 }

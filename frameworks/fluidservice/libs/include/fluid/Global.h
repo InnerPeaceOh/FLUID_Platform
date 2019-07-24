@@ -56,7 +56,7 @@ namespace android{
 	namespace AM {
 		enum {
 			START_FLUID_ACTIVITY_TRANSACTION = 293,
-			GET_APP_TOKEN_FOR_TOP_ACTIVITY_TRANSACTION = 294,
+			COMPILE_APK_TRANSACTION = 294,
 		};
 	};
 

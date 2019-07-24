@@ -86,8 +86,6 @@ public:
 	};
 	
 	bool mIsHostDevice;
-
-private:
 	ConnManager mConnManager;
 	Semaphore mActivitySema;
 	bool mIsWaiting = false;

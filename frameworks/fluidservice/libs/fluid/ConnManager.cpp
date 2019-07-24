@@ -207,14 +207,20 @@ void ConnManager::receiveFile(int sock) {
 	}
 
 	char filePath[500] = "/data/data/com.fluid.wrapperapp/app_fluid_apk/";
-	mkdir(filePath, 0777);
 	strcat(filePath, fileName);
 	mkdir(filePath, 0777);
+	chmod(filePath, 0777);
 	strcat(filePath, "/base.apk");
 	int fd = open(filePath, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	write(fd, filePos, fileSize);
 	close(fd);
+	chmod(filePath, 0777);
 	FLUIDLOG("receiveFile(), fileSize = %d", fileSize);
+
+	Parcel request, reply;
+	request.writeInterfaceToken(String16("android.app.IActivityManager"));
+	request.writeString16(String16(fileName));
+	IPCThreadState::self()->transact(mFLUIDService->mAmHandle, AM::COMPILE_APK_TRANSACTION, request, &reply, REPLY_ON);
 
 	delete[] fileName;
 	delete[] buffer;

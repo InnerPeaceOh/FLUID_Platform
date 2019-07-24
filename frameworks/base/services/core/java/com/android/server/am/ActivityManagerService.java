@@ -451,6 +451,8 @@ import dalvik.system.VMRuntime;
 import libcore.io.IoUtils;
 import libcore.util.EmptyArray;
 
+import dalvik.system.DexClassLoader;
+
 public class ActivityManagerService extends IActivityManager.Stub
         implements Watchdog.Monitor, BatteryStatsImpl.BatteryCallback {
 
@@ -486,10 +488,11 @@ public class ActivityManagerService extends IActivityManager.Stub
 	}
 
 	@Override
-	public IBinder getAppTokenForTopActivity() throws RemoteException {
-		ActivityRecord topActivity = mStackSupervisor.topRunningActivityLocked();
-		if (DUI_DEBUG) Log.d(DUI_TAG, "getAppTokenForTopActivity(), topActivity = " + topActivity + ", appToken = " + topActivity.appToken);
-		return (topActivity != null)? topActivity.appToken.asBinder() : null;
+	public void compileAPK(String fileName) throws RemoteException {
+		File apkFile = new File("/data/user/0/com.fluid.wrapperapp/app_fluid_apk/" + fileName + "/base.apk");
+		File optimizedDexOutputPath = new File("/data/user/0/com.fluid.wrapperapp/app_outdex");
+		DexClassLoader dexLoader = new DexClassLoader(apkFile.getAbsolutePath(), 
+				optimizedDexOutputPath.getAbsolutePath(), null, null);
 	}
 	/* mobiledui: end */
 
