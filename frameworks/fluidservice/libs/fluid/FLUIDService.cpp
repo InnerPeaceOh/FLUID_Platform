@@ -214,25 +214,25 @@ void FLUIDService::registerApp() {
 	//sendApk("com.mobiledui.experiment1");
 	
 	sendApk("com.simplemobiletools.musicplayer");
-	sendApk("com.paypal.android.p2pmobile");
-	sendApk("com.socialnmobile.dictapps.notepad.color.note");
-	sendApk("com.byteexperts.texteditor");
+	//sendApk("com.paypal.android.p2pmobile");
+	//sendApk("com.socialnmobile.dictapps.notepad.color.note");
+	//sendApk("com.byteexperts.texteditor");
 	sendApk("com.instagram.android");
 	sendApk("com.threestar.gallery");
-	sendApk("com.atomicadd.fotos");
-	sendApk("com.sp.protector.free");
+	//sendApk("com.atomicadd.fotos");
+	//sendApk("com.sp.protector.free");
 	sendApk("com.alpha.applock");
 	sendApk("org.videolan.vlc");
 	sendApk("com.nhn.android.nmap");
-	sendApk("com.mapswithme.maps.pro");
+	//sendApk("com.mapswithme.maps.pro");
 	sendApk("com.ebay.mobile");
-	sendApk("com.booking");
+	//sendApk("com.booking");
 	sendApk("com.cmcm.live");
-	sendApk("kr.co.nowcom.mobile.afreeca");
+	//sendApk("kr.co.nowcom.mobile.afreeca");
 	sendApk("com.eyewind.paperone");
-	sendApk("com.ennesoft.paint");
-	sendApk("com.hmobile.biblekjv");
-	sendApk("com.sharpened.androidfileviewer");
+	//sendApk("com.ennesoft.paint");
+	//sendApk("com.hmobile.biblekjv");
+	//sendApk("com.sharpened.androidfileviewer");
 }
 
 void FLUIDService::onActivityLaunched(sp<IBinder> token) {

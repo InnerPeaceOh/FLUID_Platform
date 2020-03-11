@@ -40,7 +40,7 @@ import java.lang.reflect.Array;
 class ObjectField extends CachedField {
 	/* mobiledui: start */
     private static final String DUI_TAG = "MOBILEDUI(ObjectField)";
-    private static final boolean DUI_DEBUG = false;
+    private static final boolean DUI_DEBUG = true;
 	/* mobiledui: end */
 
 	public Class[] generics;

@@ -188,7 +188,7 @@ public class Kryo {
 
 	/* mobiledui: start */
     private static final String DUI_TAG = "MOBILEDUI(Kryo)";
-    private static final boolean DUI_DEBUG = false;
+    private static final boolean DUI_DEBUG = true;
 	static public final int NONE = 0;
 	static public final int OUTER_CONTEXT = 1;
 	static public final int INNER_CONTEXT = 2;

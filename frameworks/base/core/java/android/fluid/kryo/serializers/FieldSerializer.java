@@ -77,7 +77,7 @@ public class FieldSerializer<T> extends Serializer<T> implements Comparator<Fiel
 
 	/* mobiledui: start */
     private static final String DUI_TAG = "MOBILEDUI(FieldSerializer)";
-    private static final boolean DUI_DEBUG = false;
+    private static final boolean DUI_DEBUG = true;
     private static final String DUI_TEMP_TAG = "TEMP(FieldSerializer)";
     private static final boolean TEMP_DEBUG = false;
 

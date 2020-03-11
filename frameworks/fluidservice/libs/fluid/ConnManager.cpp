@@ -217,10 +217,10 @@ void ConnManager::receiveFile(int sock) {
 	chmod(filePath, 0777);
 	FLUIDLOG("receiveFile(), fileSize = %d", fileSize);
 
-	Parcel request, reply;
-	request.writeInterfaceToken(String16("android.app.IActivityManager"));
-	request.writeString16(String16(fileName));
-	IPCThreadState::self()->transact(mFLUIDService->mAmHandle, AM::COMPILE_APK_TRANSACTION, request, &reply, REPLY_ON);
+	//Parcel request, reply;
+	//request.writeInterfaceToken(String16("android.app.IActivityManager"));
+	//request.writeString16(String16(fileName));
+	//IPCThreadState::self()->transact(mFLUIDService->mAmHandle, AM::COMPILE_APK_TRANSACTION, request, &reply, REPLY_ON);
 
 	delete[] fileName;
 	delete[] buffer;
@@ -307,7 +307,7 @@ bool ConnManager::ListenThread::threadLoop() {
 					mIps[clientSock] = inet_ntoa(clientAddr.sin_addr);
 
 					mConnManager->mClientSock = clientSock;
-					mConnManager->mFLUIDService->registerApp();
+					//mConnManager->mFLUIDService->registerApp();
 				}
 			}
 			if (--res <= 0)

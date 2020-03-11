@@ -211,7 +211,10 @@ public class RelativeLayout extends ViewGroup {
     private final Rect mSelfBounds = new Rect();
     private int mIgnoreGravity;
 
-    private SortedSet<View> mTopToBottomLeftToRightSet = null;
+    //private SortedSet<View> mTopToBottomLeftToRightSet = null;
+	/* mobiledui: start */
+    transient private SortedSet<View> mTopToBottomLeftToRightSet = null;
+	/* mobiledui: end */
 
     private boolean mDirtyHierarchy;
     //private View[] mSortedHorizontalChildren;
